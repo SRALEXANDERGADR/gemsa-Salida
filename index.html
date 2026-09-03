@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Control de Salidas</title>
+<style>
+  :root{
+    --bg: #16181b;
+    --panel: #1f2226;
+    --panel-raised: #26292e;
+    --line: #33373d;
+    --text: #eceeef;
+    --text-dim: #9aa1a8;
+    --accent: #e8722c;
+    --accent-dim: #7a3f1c;
+    --ok: #4caf7d;
+    --danger: #d9564a;
+    --mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:'Inter',-apple-system,'Segoe UI',Roboto,sans-serif;}
+  body{padding-bottom:40px;}
+
+  header{
+    position:sticky; top:0; z-index:20;
+    background:var(--bg);
+    border-bottom:1px solid var(--line);
+    padding:18px 16px 14px;
+  }
+  header .row{display:flex; align-items:baseline; justify-content:space-between; gap:10px;}
+  header h1{font-size:19px; font-weight:700; margin:0; letter-spacing:-0.01em;}
+  header .sub{font-size:12.5px; color:var(--text-dim); margin-top:3px;}
+  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;margin-right:6px;}
+
+  main{max-width:640px; margin:0 auto; padding:16px;}
+
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:16px;
+    margin-bottom:16px;
+  }
+
+  .field{margin-bottom:12px;}
+  .field label{
+    display:block; font-size:12px; color:var(--text-dim);
+    margin-bottom:6px; font-weight:600;
+  }
+  .field input, .field textarea{
+    width:100%; background:var(--panel-raised); border:1px solid var(--line);
+    color:var(--text); border-radius:7px; padding:11px 12px; font-size:16px;
+    font-family:inherit;
+  }
+  .field input:focus, .field textarea:focus{outline:none; border-color:var(--accent);}
+  .field.code input{font-family:var(--mono); font-weight:700; letter-spacing:0.02em; text-transform:uppercase;}
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  textarea{resize:none; min-height:44px;}
+
+  button{font-family:inherit; cursor:pointer; border:none;}
+  .btn-primary{
+    width:100%; background:var(--accent); color:#1a1206;
+    font-weight:700; font-size:15px; padding:13px; border-radius:8px;
+    margin-top:4px;
+  }
+  .btn-primary:active{transform:scale(0.99);}
+  .btn-primary:disabled{background:#4a4033; color:#8a8378; cursor:not-allowed;}
+
+  .section-title{
+    display:flex; align-items:center; justify-content:space-between;
+    margin:22px 0 10px;
+  }
+  .section-title h2{font-size:13px; text-transform:uppercase; letter-spacing:0.04em;
+    color:var(--text-dim); font-weight:700; margin:0;}
+  .section-title .count{font-size:12px; color:var(--text-dim);}
+
+  .copy-btn{
+    background:var(--panel-raised); color:var(--text); border:1px solid var(--line);
+    border-radius:7px; padding:8px 12px; font-size:13px; font-weight:600;
+    display:flex; align-items:center; gap:6px;
+  }
+  .copy-btn:active{background:var(--line);}
+  .copy-btn.copied{color:var(--ok); border-color:var(--ok);}
+
+  .entry{
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    padding:12px 14px; margin-bottom:8px;
+    display:flex; gap:12px; align-items:flex-start;
+  }
+  .entry .code-badge{
+    font-family:var(--mono); font-weight:700; font-size:13.5px;
+    background:var(--accent-dim); color:#ffcfa8;
+    padding:5px 8px; border-radius:6px; white-space:nowrap; flex-shrink:0;
+    margin-top:1px;
+  }
+  .entry .body{flex:1; min-width:0;}
+  .entry .name{font-size:15px; font-weight:600; margin:0 0 2px;}
+  .entry .meta{font-size:12.5px; color:var(--text-dim); display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  .entry .obs{font-size:13px; color:var(--text-dim); margin-top:4px; font-style:italic;}
+  .entry .time-edit{
+    background:transparent; border:none; color:var(--text-dim); font-size:12.5px;
+    font-family:inherit; padding:0; width:56px;
+  }
+  .entry .time-edit:focus{outline:none; color:var(--text);}
+  .entry .del{
+    background:transparent; color:var(--text-dim); font-size:18px; line-height:1;
+    padding:4px 6px; flex-shrink:0; border-radius:6px;
+  }
+  .entry .del:active{background:var(--line); color:var(--danger);}
+
+  .empty{
+    text-align:center; color:var(--text-dim); font-size:14px;
+    padding:34px 20px; border:1px dashed var(--line); border-radius:10px;
+  }
+
+  .day-group{margin-bottom:4px;}
+  .day-label{font-size:12px; color:var(--text-dim); font-weight:700; margin:16px 0 8px;
+    text-transform:uppercase; letter-spacing:0.03em;}
+  .day-label:first-child{margin-top:0;}
+
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:var(--panel-raised); border:1px solid var(--line); color:var(--text);
+    padding:10px 18px; border-radius:8px; font-size:13.5px; z-index:50;
+    opacity:0; pointer-events:none; transition:opacity 0.2s, transform 0.2s;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="row">
+    <h1>Control de Salidas</h1>
+  </div>
+  <div class="sub"><span class="status-dot"></span>Registro compartido &middot; se borra automáticamente a los 7 días</div>
+</header>
+
+<main>
+  <div class="card">
+    <div class="field code">
+      <label for="f-code">Código de vehículo</label>
+      <input id="f-code" type="text" placeholder="Ej. GD-156" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="f-name">Trabajador(es)</label>
+      <input id="f-name" type="text" placeholder="Ej. José Manuel Salas y Francisco" autocomplete="off">
+    </div>
+    <div class="two-col">
+      <div class="field">
+        <label for="f-time">Hora de salida</label>
+        <input id="f-time" type="time">
+      </div>
+      <div class="field">
+        <label for="f-obs">Observación (opcional)</label>
+        <input id="f-obs" type="text" placeholder="Motivo, destino...">
+      </div>
+    </div>
+    <button class="btn-primary" id="btn-save">Registrar salida</button>
+  </div>
+
+  <div class="section-title">
+    <h2>Registros</h2>
+    <button class="copy-btn" id="btn-copy">Copiar lista de hoy</button>
+  </div>
+
+  <div id="list"></div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let entries = [];
+
+function nowTimeStr(){
+  const d = new Date();
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toast._h);
+  toast._h = setTimeout(()=>t.classList.remove('show'), 1600);
+}
+function dateKey(ts){
+  const d = new Date(ts);
+  return d.toLocaleDateString('es-MX', {day:'2-digit', month:'2-digit', year:'numeric'});
+}
+function dateLabel(ts){
+  const d = new Date(ts);
+  const today = new Date();
+  const isToday = d.toDateString() === today.toDateString();
+  const yest = new Date(today); yest.setDate(yest.getDate()-1);
+  const isYest = d.toDateString() === yest.toDateString();
+  if(isToday) return 'Hoy · ' + dateKey(ts);
+  if(isYest) return 'Ayer · ' + dateKey(ts);
+  return d.toLocaleDateString('es-MX', {weekday:'long', day:'2-digit', month:'2-digit'});
+}
+
+async function loadEntries(){
+  try{
+    const res = await fetch('/api/entries');
+    if(!res.ok) throw new Error('fetch failed: ' + res.status);
+    const data = await res.json();
+    entries = (data.entries || []).sort((a,b)=> b.createdAt - a.createdAt);
+  }catch(e){
+    console.error(e);
+    toast('No se pudieron cargar los registros.');
+    entries = [];
+  }
+  render();
+}
+
+async function deleteEntry(id){
+  try{
+    const res = await fetch('/api/entries?id=' + encodeURIComponent(id), { method:'DELETE' });
+    if(!res.ok) throw new Error('delete failed');
+  }catch(e){
+    console.error(e);
+    toast('No se pudo eliminar. Intenta de nuevo.');
+    return;
+  }
+  entries = entries.filter(e => e.id !== id);
+  render();
+}
+
+function render(){
+  const list = document.getElementById('list');
+  if(entries.length === 0){
+    list.innerHTML = '<div class="empty">Sin registros. Cuando alguien saque un vehículo, regístralo arriba.</div>';
+    return;
+  }
+  const groups = {};
+  const order = [];
+  for(const e of entries){
+    const key = dateKey(e.createdAt);
+    if(!groups[key]){ groups[key] = []; order.push(key); }
+    groups[key].push(e);
+  }
+  let html = '';
+  for(const key of order){
+    const groupEntries = groups[key];
+    html += `<div class="day-label">${dateLabel(groupEntries[0].createdAt)}</div>`;
+    for(const e of groupEntries){
+      html += `
+        <div class="entry" data-id="${e.id}">
+          <div class="code-badge">${escapeHtml(e.code)}</div>
+          <div class="body">
+            <p class="name">${escapeHtml(e.name)}</p>
+            <div class="meta">
+              <input class="time-edit" type="time" value="${e.time}" data-id="${e.id}">
+            </div>
+            ${e.obs ? `<div class="obs">${escapeHtml(e.obs)}</div>` : ''}
+          </div>
+          <button class="del" data-id="${e.id}" title="Eliminar registro">&times;</button>
+        </div>`;
+    }
+  }
+  list.innerHTML = html;
+
+  list.querySelectorAll('.del').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.getAttribute('data-id');
+      if(confirm('¿Eliminar este registro?')) deleteEntry(id);
+    });
+  });
+  list.querySelectorAll('.time-edit').forEach(inp=>{
+    inp.addEventListener('change', async ()=>{
+      const id = inp.getAttribute('data-id');
+      const entry = entries.find(e=>e.id===id);
+      if(!entry) return;
+      const prevTime = entry.time;
+      const newTime = inp.value;
+      try{
+        const res = await fetch('/api/entries', {
+          method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ id, time:newTime })
+        });
+        if(!res.ok) throw new Error('update failed');
+        entry.time = newTime;
+      }catch(e){
+        console.error(e);
+        toast('No se pudo actualizar la hora.');
+        inp.value = prevTime;
+      }
+    });
+  });
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+document.getElementById('btn-save').addEventListener('click', async ()=>{
+  const codeEl = document.getElementById('f-code');
+  const nameEl = document.getElementById('f-name');
+  const timeEl = document.getElementById('f-time');
+  const obsEl = document.getElementById('f-obs');
+
+  const code = codeEl.value.trim();
+  const name = nameEl.value.trim();
+  const time = timeEl.value || nowTimeStr();
+  const obs = obsEl.value.trim();
+
+  if(!code || !name){
+    toast('Falta el código o el nombre.');
+    return;
+  }
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  try{
+    const res = await fetch('/api/entries', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ code, name, time, obs })
+    });
+    if(!res.ok) throw new Error('save failed');
+    const data = await res.json();
+    entries.unshift(data.entry);
+    entries.sort((a,b)=> b.createdAt - a.createdAt);
+    render();
+    codeEl.value=''; nameEl.value=''; obsEl.value='';
+    timeEl.value = nowTimeStr();
+    codeEl.focus();
+    toast('Salida registrada');
+  }catch(e){
+    console.error(e);
+    toast('No se pudo guardar. Intenta de nuevo.');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Registrar salida';
+});
+
+document.getElementById('btn-copy').addEventListener('click', ()=>{
+  const today = new Date().toDateString();
+  const todays = entries.filter(e => new Date(e.createdAt).toDateString() === today);
+  if(todays.length === 0){
+    toast('No hay registros de hoy');
+    return;
+  }
+  const sorted = [...todays].sort((a,b)=> a.time.localeCompare(b.time));
+  const dateStr = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'2-digit', year:'numeric'});
+  let text = `Operativa comercial\n${dateStr}\n\n`;
+  text += sorted.map(e => `${e.code} ${e.name}`).join('\n\n');
+
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = document.getElementById('btn-copy');
+    btn.classList.add('copied');
+    btn.textContent = 'Copiado ✓';
+    setTimeout(()=>{ btn.classList.remove('copied'); btn.textContent = 'Copiar lista de hoy'; }, 1800);
+  }).catch(()=>{
+    toast('No se pudo copiar');
+  });
+});
+
+// init
+document.getElementById('f-time').value = nowTimeStr();
+loadEntries();
+</script>
+</body>
+</html>
