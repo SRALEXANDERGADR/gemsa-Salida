@@ -2,7 +2,8 @@
 // Usa un archivo JSON dentro del propio repo de GitHub como "base de datos".
 // Requiere estos secretos configurados en el proyecto de Cloudflare Pages:
 //   GITHUB_TOKEN       -> Personal Access Token con permiso sobre el repo (contents: read/write)
-//   GITHUB_REPO        -> "SRALEXANDERGADR/Control-Salidas"
+//   GITHUB_REPO        -> ej. "SRALEXANDERGADR/gemsa-Salida" (o el repo donde quieras guardar los datos)
+//   ACCESS_CODE        -> clave compartida que el equipo debe usar para entrar
 // Opcionales (tienen valor por defecto si no los configuras):
 //   GITHUB_BRANCH      -> por defecto "main"
 //   GITHUB_FILE_PATH   -> por defecto "data/entries.json"
@@ -15,6 +16,11 @@ function json(obj, status = 200) {
     status,
     headers: { 'Content-Type': 'application/json' }
   });
+}
+
+function checkAuth(request, env) {
+  const code = request.headers.get('x-access-code') || '';
+  return !!env.ACCESS_CODE && code === env.ACCESS_CODE;
 }
 
 function b64EncodeUtf8(str) {
@@ -107,6 +113,7 @@ async function withRetry(env, mutateFn, message, maxAttempts = 3) {
 }
 
 export async function onRequestGet(context) {
+  if (!checkAuth(context.request, context.env)) return json({ error: 'unauthorized' }, 401);
   try {
     const result = await withRetry(
       context.env,
@@ -124,6 +131,7 @@ export async function onRequestGet(context) {
 }
 
 export async function onRequestPost(context) {
+  if (!checkAuth(context.request, context.env)) return json({ error: 'unauthorized' }, 401);
   let body;
   try {
     body = await context.request.json();
@@ -136,7 +144,13 @@ export async function onRequestPost(context) {
   const obs = (body.obs || '').trim();
   if (!code || !name) return json({ error: 'Falta código o nombre' }, 400);
 
-  const entry = { id: crypto.randomUUID(), code, name, time, obs, createdAt: Date.now() };
+  const entry = {
+    id: crypto.randomUUID(),
+    code, name, time, obs,
+    status: 'fuera',
+    returnTime: null,
+    createdAt: Date.now()
+  };
 
   try {
     await withRetry(
@@ -155,13 +169,14 @@ export async function onRequestPost(context) {
 }
 
 export async function onRequestPut(context) {
+  if (!checkAuth(context.request, context.env)) return json({ error: 'unauthorized' }, 401);
   let body;
   try {
     body = await context.request.json();
   } catch (e) {
     return json({ error: 'JSON inválido' }, 400);
   }
-  const { id, time } = body;
+  const { id } = body;
   if (!id) return json({ error: 'Falta id' }, 400);
 
   try {
@@ -170,10 +185,12 @@ export async function onRequestPut(context) {
       entries => {
         const idx = entries.findIndex(e => e.id === id);
         if (idx === -1) return { noop: true, value: null };
-        entries[idx].time = time;
+        if (body.time !== undefined) entries[idx].time = body.time;
+        if (body.status !== undefined) entries[idx].status = body.status;
+        if (body.returnTime !== undefined) entries[idx].returnTime = body.returnTime;
         return { entries, value: entries[idx] };
       },
-      `Editar hora de salida: ${id}`
+      body.status === 'regreso' ? `Marcar regreso: ${id}` : `Editar registro: ${id}`
     );
     if (!value) return json({ error: 'Registro no encontrado' }, 404);
     return json({ entry: value });
@@ -183,6 +200,7 @@ export async function onRequestPut(context) {
 }
 
 export async function onRequestDelete(context) {
+  if (!checkAuth(context.request, context.env)) return json({ error: 'unauthorized' }, 401);
   const url = new URL(context.request.url);
   const id = url.searchParams.get('id');
   if (!id) return json({ error: 'Falta id' }, 400);

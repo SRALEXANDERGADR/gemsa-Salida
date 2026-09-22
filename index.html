@@ -120,6 +120,35 @@
     text-transform:uppercase; letter-spacing:0.03em;}
   .day-label:first-child{margin-top:0;}
 
+  #gate{
+    position:fixed; inset:0; background:var(--bg); z-index:100;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  #gate .box{ width:100%; max-width:320px; text-align:center; }
+  #gate h2{ font-size:17px; margin:0 0 6px; }
+  #gate p{ font-size:13px; color:var(--text-dim); margin:0 0 18px; }
+  #gate input{
+    width:100%; background:var(--panel-raised); border:1px solid var(--line);
+    color:var(--text); border-radius:7px; padding:13px; font-size:16px;
+    text-align:center; letter-spacing:0.05em; margin-bottom:10px; font-family:inherit;
+  }
+  #gate input:focus{ outline:none; border-color:var(--accent); }
+  #gate .err{ color:var(--danger); font-size:12.5px; margin-top:8px; min-height:16px; }
+  #app{ display:none; }
+
+  .status-pill{
+    font-size:11px; font-weight:700; padding:3px 8px; border-radius:20px;
+    text-transform:uppercase; letter-spacing:0.02em;
+  }
+  .status-pill.fuera{ background:#4a2e1c; color:#f2a93b; }
+  .status-pill.regreso{ background:#1c3a2c; color:var(--ok); }
+  .return-btn{
+    background:var(--panel-raised); color:var(--ok); border:1px solid var(--ok);
+    border-radius:6px; padding:5px 10px; font-size:12px; font-weight:700; margin-top:6px;
+  }
+  .return-btn:active{ background:#1c3a2c; }
+  .return-btn.undo{ color:var(--text-dim); border-color:var(--line); }
+
   .toast{
     position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
     background:var(--panel-raised); border:1px solid var(--line); color:var(--text);
@@ -131,6 +160,17 @@
 </head>
 <body>
 
+<div id="gate">
+  <div class="box">
+    <h2>Control de Salidas</h2>
+    <p>Ingresa la clave del equipo para continuar</p>
+    <input id="gate-input" type="password" placeholder="Clave de acceso" autocomplete="off">
+    <button class="btn-primary" id="gate-btn" style="margin-top:2px;">Entrar</button>
+    <div class="err" id="gate-err"></div>
+  </div>
+</div>
+
+<div id="app">
 <header>
   <div class="row">
     <h1>Control de Salidas</h1>
@@ -170,9 +210,16 @@
 </main>
 
 <div class="toast" id="toast"></div>
+</div><!-- /#app -->
 
 <script>
 let entries = [];
+let accessCode = localStorage.getItem('cs_access_code') || '';
+
+function apiFetch(url, options={}){
+  options.headers = Object.assign({}, options.headers, { 'x-access-code': accessCode });
+  return fetch(url, options);
+}
 
 function nowTimeStr(){
   const d = new Date();
@@ -202,7 +249,11 @@ function dateLabel(ts){
 
 async function loadEntries(){
   try{
-    const res = await fetch('/api/entries');
+    const res = await apiFetch('/api/entries');
+    if(res.status === 401){
+      showGate('Clave incorrecta. Intenta de nuevo.');
+      return;
+    }
     if(!res.ok) throw new Error('fetch failed: ' + res.status);
     const data = await res.json();
     entries = (data.entries || []).sort((a,b)=> b.createdAt - a.createdAt);
@@ -214,9 +265,39 @@ async function loadEntries(){
   render();
 }
 
+function showGate(errMsg){
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('gate').style.display = 'flex';
+  document.getElementById('gate-err').textContent = errMsg || '';
+  document.getElementById('gate-input').focus();
+}
+
+function showApp(){
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+document.getElementById('gate-btn').addEventListener('click', async ()=>{
+  const val = document.getElementById('gate-input').value.trim();
+  if(!val){ document.getElementById('gate-err').textContent = 'Escribe la clave.'; return; }
+  accessCode = val;
+  const res = await apiFetch('/api/entries');
+  if(res.status === 401){
+    document.getElementById('gate-err').textContent = 'Clave incorrecta.';
+    accessCode = '';
+    return;
+  }
+  localStorage.setItem('cs_access_code', val);
+  showApp();
+  loadEntries();
+});
+document.getElementById('gate-input').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter') document.getElementById('gate-btn').click();
+});
+
 async function deleteEntry(id){
   try{
-    const res = await fetch('/api/entries?id=' + encodeURIComponent(id), { method:'DELETE' });
+    const res = await apiFetch('/api/entries?id=' + encodeURIComponent(id), { method:'DELETE' });
     if(!res.ok) throw new Error('delete failed');
   }catch(e){
     console.error(e);
@@ -245,6 +326,7 @@ function render(){
     const groupEntries = groups[key];
     html += `<div class="day-label">${dateLabel(groupEntries[0].createdAt)}</div>`;
     for(const e of groupEntries){
+      const isBack = e.status === 'regreso';
       html += `
         <div class="entry" data-id="${e.id}">
           <div class="code-badge">${escapeHtml(e.code)}</div>
@@ -252,8 +334,13 @@ function render(){
             <p class="name">${escapeHtml(e.name)}</p>
             <div class="meta">
               <input class="time-edit" type="time" value="${e.time}" data-id="${e.id}">
+              <span class="status-pill ${isBack ? 'regreso' : 'fuera'}">${isBack ? 'Regresó' : 'Fuera'}</span>
+              ${isBack ? `<span>· regresó ${escapeHtml(e.returnTime || '')}</span>` : ''}
             </div>
             ${e.obs ? `<div class="obs">${escapeHtml(e.obs)}</div>` : ''}
+            <button class="return-btn ${isBack ? 'undo' : ''}" data-id="${e.id}" data-mark="${isBack ? 'undo' : 'return'}">
+              ${isBack ? 'Deshacer regreso' : 'Marcar regreso'}
+            </button>
           </div>
           <button class="del" data-id="${e.id}" title="Eliminar registro">&times;</button>
         </div>`;
@@ -267,6 +354,35 @@ function render(){
       if(confirm('¿Eliminar este registro?')) deleteEntry(id);
     });
   });
+  list.querySelectorAll('.return-btn').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.getAttribute('data-id');
+      const entry = entries.find(e=>e.id===id);
+      if(!entry) return;
+      const markReturn = btn.getAttribute('data-mark') === 'return';
+      btn.disabled = true;
+      try{
+        const res = await apiFetch('/api/entries', {
+          method:'PUT',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({
+            id,
+            status: markReturn ? 'regreso' : 'fuera',
+            returnTime: markReturn ? nowTimeStr() : null
+          })
+        });
+        if(!res.ok) throw new Error('update failed');
+        const data = await res.json();
+        Object.assign(entry, data.entry);
+        render();
+      }catch(e){
+        console.error(e);
+        toast('No se pudo actualizar el regreso.');
+      }
+      btn.disabled = false;
+    });
+  });
+
   list.querySelectorAll('.time-edit').forEach(inp=>{
     inp.addEventListener('change', async ()=>{
       const id = inp.getAttribute('data-id');
@@ -275,7 +391,7 @@ function render(){
       const prevTime = entry.time;
       const newTime = inp.value;
       try{
-        const res = await fetch('/api/entries', {
+        const res = await apiFetch('/api/entries', {
           method:'PUT',
           headers:{'Content-Type':'application/json'},
           body: JSON.stringify({ id, time:newTime })
@@ -318,7 +434,7 @@ document.getElementById('btn-save').addEventListener('click', async ()=>{
   btn.textContent = 'Guardando...';
 
   try{
-    const res = await fetch('/api/entries', {
+    const res = await apiFetch('/api/entries', {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ code, name, time, obs })
@@ -365,7 +481,12 @@ document.getElementById('btn-copy').addEventListener('click', ()=>{
 
 // init
 document.getElementById('f-time').value = nowTimeStr();
-loadEntries();
+if(accessCode){
+  showApp();
+  loadEntries();
+} else {
+  showGate();
+}
 </script>
 </body>
 </html>
