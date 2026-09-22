@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "id": "7a94d523-dcd7-45f0-939b-99af49f39a5d",
+    "code": "G-37",
+    "name": "Juan Carlos Canela",
+    "time": "12:45",
+    "obs": "",
+    "status": "fuera",
+    "returnTime": null,
+    "createdAt": 1790099478443
+  }
+]
