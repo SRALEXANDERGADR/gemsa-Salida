@@ -5,8 +5,8 @@
     "name": "José Manuel",
     "time": "20:44",
     "obs": "",
-    "status": "fuera",
-    "returnTime": null,
+    "status": "regreso",
+    "returnTime": "13:46",
     "createdAt": 1790099154319
   }
 ]
