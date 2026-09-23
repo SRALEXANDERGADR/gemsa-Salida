@@ -5,8 +5,8 @@
     "name": "Jose",
     "time": "07:23",
     "obs": "",
-    "status": "regreso",
-    "returnTime": "07:23",
+    "status": "fuera",
+    "returnTime": null,
     "createdAt": 1790162595727
   }
 ]
