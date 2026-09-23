@@ -1,4 +1,8 @@
 {
+  // Variables/secretos requeridos en Cloudflare (Settings → Variables and secrets):
+  //   GITHUB_TOKEN    (secreto)  Personal Access Token con permiso sobre el repo
+  //   GITHUB_REPO     (variable) ej. "SRALEXANDERGADR/gemsa-Salida"
+  //   SESSION_SECRET  (secreto)  cualquier cadena larga y aleatoria (firma las sesiones)
   "name": "gemsa-salida",
   "compatibility_date": "2024-11-01",
   "main": "src/index.js",

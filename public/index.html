@@ -1,492 +1,769 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
-<title>Control de Salidas</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Control de Salidas — GEMSA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  :root{
-    --bg: #16181b;
-    --panel: #1f2226;
-    --panel-raised: #26292e;
-    --line: #33373d;
-    --text: #eceeef;
-    --text-dim: #9aa1a8;
-    --accent: #e8722c;
-    --accent-dim: #7a3f1c;
-    --ok: #4caf7d;
-    --danger: #d9564a;
-    --mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+  :root {
+    --bg: #0b0e13;
+    --surface: #12161d;
+    --surface-2: #181e27;
+    --border: #262c36;
+    --ink: #eaf0fb;
+    --ink-faint: #77839c;
+    --muted: #8b93a1;
+    --accent: #e8792f;
+    --accent-ink: #1a0f06;
+    --success: #34c77b;
+    --danger: #e5484d;
+    --radius: 16px;
+    --radius-sm: 10px;
   }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
-    font-family:'Inter',-apple-system,'Segoe UI',Roboto,sans-serif;}
-  body{padding-bottom:40px;}
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+  .hidden { display: none !important; }
+  button { font-family: inherit; cursor: pointer; }
+  input, select { font-family: inherit; }
 
-  header{
-    position:sticky; top:0; z-index:20;
-    background:var(--bg);
-    border-bottom:1px solid var(--line);
-    padding:18px 16px 14px;
+  /* ---------- pantallas de auth (loading / setup / login) ---------- */
+  .auth-wrap {
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px 18px;
   }
-  header .row{display:flex; align-items:baseline; justify-content:space-between; gap:10px;}
-  header h1{font-size:19px; font-weight:700; margin:0; letter-spacing:-0.01em;}
-  header .sub{font-size:12.5px; color:var(--text-dim); margin-top:3px;}
-  .status-dot{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block;margin-right:6px;}
+  .auth-card {
+    width: 100%; max-width: 380px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px 24px;
+  }
+  .auth-title { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
+  .auth-sub { color: var(--ink-faint); font-size: 13.5px; margin: 0 0 22px; line-height: 1.5; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+  .field input, .field select {
+    width: 100%; background: var(--surface-2); border: 1px solid var(--border);
+    color: var(--ink); border-radius: var(--radius-sm); padding: 12px 13px; font-size: 15.5px;
+    outline: none;
+  }
+  .field input:focus, .field select:focus { border-color: var(--accent); }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    border: none; border-radius: var(--radius-sm); padding: 12px 16px;
+    font-size: 15px; font-weight: 700; transition: filter .15s ease, opacity .15s ease;
+  }
+  .btn:active { filter: brightness(.9); }
+  .btn-primary { background: var(--accent); color: var(--accent-ink); width: 100%; }
+  .btn-ghost { background: transparent; color: var(--ink); border: 1px solid var(--border); }
+  .btn-danger { background: rgba(229,72,77,.12); color: var(--danger); border: 1px solid rgba(229,72,77,.35); }
+  .btn-success { background: rgba(52,199,123,.12); color: var(--success); border: 1px solid rgba(52,199,123,.35); }
+  .btn-small { padding: 8px 12px; font-size: 13px; }
+  .btn:disabled { opacity: .5; pointer-events: none; }
+  .auth-error { background: rgba(229,72,77,.1); border: 1px solid rgba(229,72,77,.3); color: #ff9b9e;
+    border-radius: var(--radius-sm); padding: 10px 12px; font-size: 13.5px; margin-bottom: 14px; }
+  .auth-switch { text-align: center; margin-top: 16px; font-size: 13.5px; color: var(--ink-faint); }
+  .loading-text { color: var(--ink-faint); font-size: 14px; }
 
-  main{max-width:640px; margin:0 auto; padding:16px;}
+  /* ---------- app ---------- */
+  #screen-app { min-height: 100vh; display: flex; flex-direction: column; }
+  .topbar {
+    position: sticky; top: 0; z-index: 5;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 16px 18px; background: rgba(11,14,19,.92); backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--border);
+  }
+  .topbar h1 { font-size: 17px; margin: 0; font-weight: 800; }
+  .topbar .sub { font-size: 11.5px; color: var(--ink-faint); margin-top: 2px; }
+  .user-chip { display: flex; align-items: center; gap: 8px; }
+  .user-chip .who { text-align: right; line-height: 1.25; }
+  .user-chip .who .n { font-size: 13.5px; font-weight: 700; }
+  .user-chip .who .r { font-size: 11px; color: var(--ink-faint); }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--surface-2);
+    border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px; color: var(--accent); flex-shrink: 0; }
 
-  .card{
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:10px;
-    padding:16px;
-    margin-bottom:16px;
-  }
+  .tabs { display: flex; gap: 6px; padding: 10px 14px; overflow-x: auto; border-bottom: 1px solid var(--border); }
+  .tab-btn { flex-shrink: 0; background: transparent; border: 1px solid var(--border); color: var(--ink-faint);
+    border-radius: 999px; padding: 8px 15px; font-size: 13.5px; font-weight: 600; }
+  .tab-btn.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 
-  .field{margin-bottom:12px;}
-  .field label{
-    display:block; font-size:12px; color:var(--text-dim);
-    margin-bottom:6px; font-weight:600;
-  }
-  .field input, .field textarea{
-    width:100%; background:var(--panel-raised); border:1px solid var(--line);
-    color:var(--text); border-radius:7px; padding:11px 12px; font-size:16px;
-    font-family:inherit;
-  }
-  .field input:focus, .field textarea:focus{outline:none; border-color:var(--accent);}
-  .field.code input{font-family:var(--mono); font-weight:700; letter-spacing:0.02em; text-transform:uppercase;}
-  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
-  textarea{resize:none; min-height:44px;}
+  main { flex: 1; padding: 16px 14px 40px; max-width: 620px; width: 100%; margin: 0 auto; }
+  section.view { display: flex; flex-direction: column; gap: 16px; }
 
-  button{font-family:inherit; cursor:pointer; border:none;}
-  .btn-primary{
-    width:100%; background:var(--accent); color:#1a1206;
-    font-weight:700; font-size:15px; padding:13px; border-radius:8px;
-    margin-top:4px;
-  }
-  .btn-primary:active{transform:scale(0.99);}
-  .btn-primary:disabled{background:#4a4033; color:#8a8378; cursor:not-allowed;}
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px; }
+  .stat-card .num { font-size: 26px; font-weight: 800; line-height: 1; }
+  .stat-card .lbl { font-size: 12px; color: var(--ink-faint); margin-top: 6px; }
+  .stat-card.out .num { color: var(--accent); }
+  .stat-card.in .num { color: var(--success); }
 
-  .section-title{
-    display:flex; align-items:center; justify-content:space-between;
-    margin:22px 0 10px;
-  }
-  .section-title h2{font-size:13px; text-transform:uppercase; letter-spacing:0.04em;
-    color:var(--text-dim); font-weight:700; margin:0;}
-  .section-title .count{font-size:12px; color:var(--text-dim);}
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .card h2 { font-size: 14.5px; margin: 0 0 14px; font-weight: 700; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .time-row { display: flex; align-items: center; gap: 8px; }
+  .time-row select { flex: 1; }
+  .time-row .colon { font-weight: 800; color: var(--ink-faint); }
+  .time-now-btn { flex-shrink: 0; }
 
-  .copy-btn{
-    background:var(--panel-raised); color:var(--text); border:1px solid var(--line);
-    border-radius:7px; padding:8px 12px; font-size:13px; font-weight:600;
-    display:flex; align-items:center; gap:6px;
-  }
-  .copy-btn:active{background:var(--line);}
-  .copy-btn.copied{color:var(--ok); border-color:var(--ok);}
+  .section-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .section-head h2 { margin: 0; font-size: 15px; font-weight: 800; }
 
-  .entry{
-    background:var(--panel); border:1px solid var(--line); border-radius:10px;
-    padding:12px 14px; margin-bottom:8px;
-    display:flex; gap:12px; align-items:flex-start;
-  }
-  .entry .code-badge{
-    font-family:var(--mono); font-weight:700; font-size:13.5px;
-    background:var(--accent-dim); color:#ffcfa8;
-    padding:5px 8px; border-radius:6px; white-space:nowrap; flex-shrink:0;
-    margin-top:1px;
-  }
-  .entry .body{flex:1; min-width:0;}
-  .entry .name{font-size:15px; font-weight:600; margin:0 0 2px;}
-  .entry .meta{font-size:12.5px; color:var(--text-dim); display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
-  .entry .obs{font-size:13px; color:var(--text-dim); margin-top:4px; font-style:italic;}
-  .entry .time-edit{
-    background:transparent; border:none; color:var(--text-dim); font-size:12.5px;
-    font-family:inherit; padding:0; width:56px;
-  }
-  .entry .time-edit:focus{outline:none; color:var(--text);}
-  .entry .del{
-    background:transparent; color:var(--text-dim); font-size:18px; line-height:1;
-    padding:4px 6px; flex-shrink:0; border-radius:6px;
-  }
-  .entry .del:active{background:var(--line); color:var(--danger);}
+  .day-label { font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--ink-faint); margin: 4px 2px; }
+  .entry { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .entry-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+  .entry-id { display: flex; align-items: center; gap: 10px; }
+  .code-badge { background: var(--accent); color: var(--accent-ink); font-weight: 800; font-size: 13px;
+    border-radius: 8px; padding: 5px 9px; letter-spacing: .02em; }
+  .entry-name { font-weight: 700; font-size: 15px; }
+  .entry-meta { font-size: 12.5px; color: var(--ink-faint); margin-top: 2px; }
+  .pill { font-size: 11px; font-weight: 800; letter-spacing: .03em; border-radius: 999px; padding: 4px 10px; }
+  .pill.out { background: rgba(232,121,47,.15); color: var(--accent); }
+  .pill.in { background: rgba(52,199,123,.15); color: var(--success); }
+  .icon-btn { background: transparent; border: none; color: var(--ink-faint); padding: 4px; font-size: 16px; line-height: 1; }
+  .icon-btn:hover { color: var(--ink); }
+  .entry-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .entry-obs { font-size: 13px; color: var(--muted); }
+  .entry-edit-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .history-box { border-top: 1px dashed var(--border); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+  .history-item { font-size: 12px; color: var(--ink-faint); }
+  .history-item b { color: var(--ink); font-weight: 600; }
+  .empty-state { text-align: center; padding: 34px 16px; color: var(--ink-faint); font-size: 13.5px; }
 
-  .empty{
-    text-align:center; color:var(--text-dim); font-size:14px;
-    padding:34px 20px; border:1px dashed var(--line); border-radius:10px;
-  }
+  .user-row { display: flex; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .user-row:last-child { border-bottom: none; }
+  .user-row .name { font-weight: 700; font-size: 14px; }
+  .user-row .uname { font-size: 12px; color: var(--ink-faint); }
+  .role-badge { font-size: 10.5px; font-weight: 800; letter-spacing: .04em; padding: 3px 8px; border-radius: 999px; }
+  .role-badge.worker { background: rgba(119,131,156,.18); color: var(--ink-faint); }
+  .role-badge.supervisor { background: rgba(232,121,47,.15); color: var(--accent); }
 
-  .day-group{margin-bottom:4px;}
-  .day-label{font-size:12px; color:var(--text-dim); font-weight:700; margin:16px 0 8px;
-    text-transform:uppercase; letter-spacing:0.03em;}
-  .day-label:first-child{margin-top:0;}
+  .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--ink);
+    padding: 11px 16px; border-radius: 999px; font-size: 13.5px; z-index: 50; max-width: 90vw; text-align: center;
+    box-shadow: 0 8px 24px rgba(0,0,0,.35); }
 
-  #gate{
-    position:fixed; inset:0; background:var(--bg); z-index:100;
-    display:flex; align-items:center; justify-content:center; padding:20px;
-  }
-  #gate .box{ width:100%; max-width:320px; text-align:center; }
-  #gate h2{ font-size:17px; margin:0 0 6px; }
-  #gate p{ font-size:13px; color:var(--text-dim); margin:0 0 18px; }
-  #gate input{
-    width:100%; background:var(--panel-raised); border:1px solid var(--line);
-    color:var(--text); border-radius:7px; padding:13px; font-size:16px;
-    text-align:center; letter-spacing:0.05em; margin-bottom:10px; font-family:inherit;
-  }
-  #gate input:focus{ outline:none; border-color:var(--accent); }
-  #gate .err{ color:var(--danger); font-size:12.5px; margin-top:8px; min-height:16px; }
-  #app{ display:none; }
-
-  .status-pill{
-    font-size:11px; font-weight:700; padding:3px 8px; border-radius:20px;
-    text-transform:uppercase; letter-spacing:0.02em;
-  }
-  .status-pill.fuera{ background:#4a2e1c; color:#f2a93b; }
-  .status-pill.regreso{ background:#1c3a2c; color:var(--ok); }
-  .return-btn{
-    background:var(--panel-raised); color:var(--ok); border:1px solid var(--ok);
-    border-radius:6px; padding:5px 10px; font-size:12px; font-weight:700; margin-top:6px;
-  }
-  .return-btn:active{ background:#1c3a2c; }
-  .return-btn.undo{ color:var(--text-dim); border-color:var(--line); }
-
-  .toast{
-    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
-    background:var(--panel-raised); border:1px solid var(--line); color:var(--text);
-    padding:10px 18px; border-radius:8px; font-size:13.5px; z-index:50;
-    opacity:0; pointer-events:none; transition:opacity 0.2s, transform 0.2s;
-  }
-  .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
+  /* ---------- crédito GADR Net (tal cual jb-tech-store) ---------- */
+  .gadr-credit { display: flex; flex-direction: column; align-items: center; gap: 10px; text-decoration: none;
+    opacity: .85; transition: opacity .25s ease; margin: 30px auto 6px; }
+  .gadr-credit:hover { opacity: 1; }
+  .gadr-credit-text { font-size: 11px; color: var(--ink-faint); text-align: center; }
+  .gadr-mark { display: flex; flex-direction: column; align-items: center; line-height: 1; flex-shrink: 0; }
+  .gadr-mark-icon { position: relative; font: 700 16px/1 'Segoe UI', monospace; letter-spacing: -1px; color: #D8CDB0; }
+  .gadr-mark-icon i { position: absolute; top: -4px; right: -7px; width: 4px; height: 4px; border-radius: 50%; background: #B2603C; }
+  .gadr-mark-word { display: block; font-weight: 900; font-size: 13px; letter-spacing: 0.04em; color: var(--ink); text-align: center; margin-top: 3px; }
+  .gadr-mark-word small { display: block; font-weight: 700; font-size: 7px; letter-spacing: 0.22em; color: #9FAD90; margin-top: 1px; }
 </style>
 </head>
 <body>
 
-<div id="gate">
-  <div class="box">
-    <h2>Control de Salidas</h2>
-    <p>Ingresa la clave del equipo para continuar</p>
-    <input id="gate-input" type="password" placeholder="Clave de acceso" autocomplete="off">
-    <button class="btn-primary" id="gate-btn" style="margin-top:2px;">Entrar</button>
-    <div class="err" id="gate-err"></div>
+<div id="screen-loading" class="auth-wrap"><div class="loading-text">Cargando…</div></div>
+
+<div id="screen-setup" class="auth-wrap hidden">
+  <div class="auth-card">
+    <p class="auth-title">Configuración inicial</p>
+    <p class="auth-sub">Primer uso del sistema. Crea la cuenta del primer supervisor; desde ahí podrás registrar al resto del personal.</p>
+    <div id="setup-error"></div>
+    <form id="setup-form">
+      <div class="field"><label>Nombre completo</label><input id="setup-name" type="text" autocomplete="name" required></div>
+      <div class="field"><label>Usuario</label><input id="setup-username" type="text" autocomplete="username" required></div>
+      <div class="field"><label>Clave</label><input id="setup-password" type="password" autocomplete="new-password" required minlength="4"></div>
+      <button class="btn btn-primary" type="submit">Crear cuenta de supervisor</button>
+    </form>
   </div>
 </div>
 
-<div id="app">
-<header>
-  <div class="row">
-    <h1>Control de Salidas</h1>
+<div id="screen-login" class="auth-wrap hidden">
+  <div class="auth-card">
+    <p class="auth-title">Control de Salidas</p>
+    <p class="auth-sub">GEMSA — inicia sesión con la cuenta que te asignó tu supervisor.</p>
+    <div id="login-error"></div>
+    <form id="login-form">
+      <div class="field"><label>Usuario</label><input id="login-username" type="text" autocomplete="username" required></div>
+      <div class="field"><label>Clave</label><input id="login-password" type="password" autocomplete="current-password" required></div>
+      <button class="btn btn-primary" type="submit">Entrar</button>
+    </form>
   </div>
-  <div class="sub"><span class="status-dot"></span>Registro compartido &middot; se borra automáticamente a los 7 días</div>
-</header>
+</div>
 
-<main>
-  <div class="card">
-    <div class="field code">
-      <label for="f-code">Código de vehículo</label>
-      <input id="f-code" type="text" placeholder="Ej. GD-156" autocomplete="off">
+<div id="screen-app" class="hidden">
+  <header class="topbar">
+    <div>
+      <h1>Control de Salidas</h1>
+      <div class="sub">GEMSA · registro compartido</div>
     </div>
-    <div class="field">
-      <label for="f-name">Trabajador(es)</label>
-      <input id="f-name" type="text" placeholder="Ej. José Manuel Salas y Francisco" autocomplete="off">
-    </div>
-    <div class="two-col">
-      <div class="field">
-        <label for="f-time">Hora de salida</label>
-        <input id="f-time" type="time">
+    <div class="user-chip">
+      <div class="who">
+        <div class="n" id="me-name">—</div>
+        <div class="r" id="me-role">—</div>
       </div>
-      <div class="field">
-        <label for="f-obs">Observación (opcional)</label>
-        <input id="f-obs" type="text" placeholder="Motivo, destino...">
-      </div>
+      <div class="avatar" id="me-avatar">·</div>
+      <button class="icon-btn" id="btn-logout" title="Cerrar sesión">⏻</button>
     </div>
-    <button class="btn-primary" id="btn-save">Registrar salida</button>
-  </div>
+  </header>
 
-  <div class="section-title">
-    <h2>Registros</h2>
-    <button class="copy-btn" id="btn-copy">Copiar lista de hoy</button>
-  </div>
+  <nav class="tabs">
+    <button class="tab-btn active" data-view="registro">Registro</button>
+    <button class="tab-btn hidden" data-view="papelera" id="tab-papelera">Papelera</button>
+    <button class="tab-btn hidden" data-view="personal" id="tab-personal">Personal</button>
+  </nav>
 
-  <div id="list"></div>
-</main>
+  <main>
+    <section id="view-registro" class="view">
+      <div class="stats-row">
+        <div class="stat-card out"><div class="num" id="stat-out">0</div><div class="lbl">Fuera ahora</div></div>
+        <div class="stat-card in"><div class="num" id="stat-in">0</div><div class="lbl">Regresaron hoy</div></div>
+      </div>
 
-<div class="toast" id="toast"></div>
-</div><!-- /#app -->
+      <div class="card">
+        <h2>Registrar salida</h2>
+        <form id="entry-form">
+          <div class="field"><label>Código de vehículo</label>
+            <input id="entry-code" type="text" placeholder="Ej. GD-156" style="text-transform:uppercase" required></div>
+          <div class="field"><label>Trabajador(es)</label>
+            <input id="entry-name" type="text" placeholder="Ej. José Manuel Salas y Francisco" required></div>
+          <div class="grid-2">
+            <div class="field"><label>Hora de salida</label>
+              <div class="time-row">
+                <select id="entry-hour"></select><span class="colon">:</span><select id="entry-min"></select>
+                <button type="button" class="btn btn-ghost btn-small time-now-btn" id="entry-now">Ahora</button>
+              </div>
+            </div>
+            <div class="field"><label>Observación (opcional)</label>
+              <input id="entry-obs" type="text" placeholder="Motivo, destino…"></div>
+          </div>
+          <button class="btn btn-primary" type="submit">Registrar salida</button>
+        </form>
+      </div>
+
+      <div class="section-head">
+        <h2>Registros</h2>
+        <button class="btn btn-ghost btn-small" id="btn-share-day">Compartir lista de hoy</button>
+      </div>
+      <div id="entries-list"></div>
+    </section>
+
+    <section id="view-papelera" class="view hidden">
+      <div class="section-head"><h2>Papelera</h2></div>
+      <p class="entry-meta" style="margin:-8px 2px 0">Los registros eliminados se guardan 30 días antes de borrarse para siempre.</p>
+      <div id="trash-list"></div>
+    </section>
+
+    <section id="view-personal" class="view hidden">
+      <div class="card">
+        <h2>Registrar nueva cuenta</h2>
+        <form id="user-form">
+          <div class="field"><label>Nombre completo</label><input id="user-name" type="text" required></div>
+          <div class="field"><label>Usuario</label><input id="user-username" type="text" required></div>
+          <div class="field"><label>Clave</label><input id="user-password" type="password" minlength="4" required></div>
+          <div class="field"><label>Rol</label>
+            <select id="user-role"><option value="worker">Personal</option><option value="supervisor">Supervisor</option></select>
+          </div>
+          <button class="btn btn-primary" type="submit">Crear cuenta</button>
+        </form>
+      </div>
+      <div class="card"><h2>Personal registrado</h2><div id="users-list"></div></div>
+    </section>
+  </main>
+
+  <a class="gadr-credit" href="https://gadrnet.com" target="_blank" rel="noopener noreferrer">
+    <span class="gadr-credit-text">Diseño y desarrollo de la tienda: GADR Net | gadrnet.com</span>
+    <span class="gadr-mark" aria-hidden="true">
+      <span class="gadr-mark-icon">&lt;/&gt;<i></i></span>
+      <span class="gadr-mark-word">GADR<small>Net</small></span>
+    </span>
+  </a>
+</div>
 
 <script>
-let entries = [];
-let accessCode = localStorage.getItem('cs_access_code') || '';
+(function () {
+  'use strict';
 
-function apiFetch(url, options={}){
-  options.headers = Object.assign({}, options.headers, { 'x-access-code': accessCode });
-  return fetch(url, options);
-}
+  var S = { token: null, user: null, entries: [], trash: [], users: [], view: 'registro' };
 
-function nowTimeStr(){
-  const d = new Date();
-  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-}
-function toast(msg){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(toast._h);
-  toast._h = setTimeout(()=>t.classList.remove('show'), 1600);
-}
-function dateKey(ts){
-  const d = new Date(ts);
-  return d.toLocaleDateString('es-MX', {day:'2-digit', month:'2-digit', year:'numeric'});
-}
-function dateLabel(ts){
-  const d = new Date(ts);
-  const today = new Date();
-  const isToday = d.toDateString() === today.toDateString();
-  const yest = new Date(today); yest.setDate(yest.getDate()-1);
-  const isYest = d.toDateString() === yest.toDateString();
-  if(isToday) return 'Hoy · ' + dateKey(ts);
-  if(isYest) return 'Ayer · ' + dateKey(ts);
-  return d.toLocaleDateString('es-MX', {weekday:'long', day:'2-digit', month:'2-digit'});
-}
-
-async function loadEntries(){
-  try{
-    const res = await apiFetch('/api/entries');
-    if(res.status === 401){
-      showGate('Clave incorrecta. Intenta de nuevo.');
-      return;
-    }
-    if(!res.ok) throw new Error('fetch failed: ' + res.status);
-    const data = await res.json();
-    entries = (data.entries || []).sort((a,b)=> b.createdAt - a.createdAt);
-  }catch(e){
-    console.error(e);
-    toast('No se pudieron cargar los registros.');
-    entries = [];
+  // ---------- helpers ----------
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
   }
-  render();
-}
-
-function showGate(errMsg){
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('gate').style.display = 'flex';
-  document.getElementById('gate-err').textContent = errMsg || '';
-  document.getElementById('gate-input').focus();
-}
-
-function showApp(){
-  document.getElementById('gate').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-}
-
-document.getElementById('gate-btn').addEventListener('click', async ()=>{
-  const val = document.getElementById('gate-input').value.trim();
-  if(!val){ document.getElementById('gate-err').textContent = 'Escribe la clave.'; return; }
-  accessCode = val;
-  const res = await apiFetch('/api/entries');
-  if(res.status === 401){
-    document.getElementById('gate-err').textContent = 'Clave incorrecta.';
-    accessCode = '';
-    return;
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function nowParts() { var d = new Date(); return { h: pad2(d.getHours()), m: pad2(d.getMinutes()) }; }
+  function fmtDay(ts) {
+    var d = new Date(ts), today = new Date(), yesterday = new Date(Date.now() - 86400000);
+    var same = function (a, b) { return a.toDateString() === b.toDateString(); };
+    if (same(d, today)) return 'HOY · ' + pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + '/' + d.getFullYear();
+    if (same(d, yesterday)) return 'AYER · ' + pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + '/' + d.getFullYear();
+    return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + '/' + d.getFullYear();
   }
-  localStorage.setItem('cs_access_code', val);
-  showApp();
-  loadEntries();
-});
-document.getElementById('gate-input').addEventListener('keydown', (e)=>{
-  if(e.key === 'Enter') document.getElementById('gate-btn').click();
-});
+  function fmtWhen(ts) {
+    var d = new Date(ts);
+    return pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + ' ' + pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+  function isToday(ts) { return new Date(ts).toDateString() === new Date().toDateString(); }
+  function toast(msg) {
+    var t = document.createElement('div');
+    t.className = 'toast'; t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(function () { t.remove(); }, 3600);
+  }
 
-async function deleteEntry(id){
-  try{
-    const res = await apiFetch('/api/entries?id=' + encodeURIComponent(id), { method:'DELETE' });
-    if(!res.ok) throw new Error('delete failed');
-  }catch(e){
-    console.error(e);
-    toast('No se pudo eliminar. Intenta de nuevo.');
-    return;
-  }
-  entries = entries.filter(e => e.id !== id);
-  render();
-}
-
-function render(){
-  const list = document.getElementById('list');
-  if(entries.length === 0){
-    list.innerHTML = '<div class="empty">Sin registros. Cuando alguien saque un vehículo, regístralo arriba.</div>';
-    return;
-  }
-  const groups = {};
-  const order = [];
-  for(const e of entries){
-    const key = dateKey(e.createdAt);
-    if(!groups[key]){ groups[key] = []; order.push(key); }
-    groups[key].push(e);
-  }
-  let html = '';
-  for(const key of order){
-    const groupEntries = groups[key];
-    html += `<div class="day-label">${dateLabel(groupEntries[0].createdAt)}</div>`;
-    for(const e of groupEntries){
-      const isBack = e.status === 'regreso';
-      html += `
-        <div class="entry" data-id="${e.id}">
-          <div class="code-badge">${escapeHtml(e.code)}</div>
-          <div class="body">
-            <p class="name">${escapeHtml(e.name)}</p>
-            <div class="meta">
-              <input class="time-edit" type="time" value="${e.time}" data-id="${e.id}">
-              <span class="status-pill ${isBack ? 'regreso' : 'fuera'}">${isBack ? 'Regresó' : 'Fuera'}</span>
-              ${isBack ? `<span>· regresó ${escapeHtml(e.returnTime || '')}</span>` : ''}
-            </div>
-            ${e.obs ? `<div class="obs">${escapeHtml(e.obs)}</div>` : ''}
-            <button class="return-btn ${isBack ? 'undo' : ''}" data-id="${e.id}" data-mark="${isBack ? 'undo' : 'return'}">
-              ${isBack ? 'Deshacer regreso' : 'Marcar regreso'}
-            </button>
-          </div>
-          <button class="del" data-id="${e.id}" title="Eliminar registro">&times;</button>
-        </div>`;
+  function fillTimeSelect(sel, max, value) {
+    sel.innerHTML = '';
+    for (var i = 0; i < max; i++) {
+      var opt = document.createElement('option');
+      opt.value = pad2(i); opt.textContent = pad2(i);
+      if (pad2(i) === value) opt.selected = true;
+      sel.appendChild(opt);
     }
   }
-  list.innerHTML = html;
 
-  list.querySelectorAll('.del').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const id = btn.getAttribute('data-id');
-      if(confirm('¿Eliminar este registro?')) deleteEntry(id);
+  async function api(path, method, body) {
+    var headers = {};
+    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    if (S.token) headers['Authorization'] = 'Bearer ' + S.token;
+    var res = await fetch(path, { method: method || 'GET', headers: headers, body: body !== undefined ? JSON.stringify(body) : undefined });
+    var data = null;
+    try { data = await res.json(); } catch (e) {}
+    if (!res.ok) { var err = new Error((data && data.error) || ('Error ' + res.status)); err.status = res.status; throw err; }
+    return data;
+  }
+
+  // ---------- boot / sesión ----------
+  async function boot() {
+    try {
+      var status = await api('/api/status');
+      if (status.needsSetup) { showScreen('setup'); return; }
+    } catch (e) { /* seguimos igual, se intentará login */ }
+
+    var saved = localStorage.getItem('cs_token');
+    if (!saved) { showScreen('login'); return; }
+    S.token = saved;
+    try {
+      var me = await api('/api/me');
+      S.user = me.user;
+      await enterApp();
+    } catch (e) {
+      localStorage.removeItem('cs_token');
+      S.token = null;
+      showScreen('login');
+    }
+  }
+
+  function showScreen(name) {
+    ['loading', 'setup', 'login', 'app'].forEach(function (n) {
+      $('screen-' + n).classList.toggle('hidden', n !== name);
+    });
+  }
+
+  async function enterApp() {
+    $('me-name').textContent = S.user.name;
+    $('me-role').textContent = S.user.role === 'supervisor' ? 'Supervisor' : 'Personal';
+    $('me-avatar').textContent = (S.user.name || '?').trim().charAt(0).toUpperCase();
+    var isSup = S.user.role === 'supervisor';
+    $('tab-papelera').classList.toggle('hidden', !isSup);
+    $('tab-personal').classList.toggle('hidden', !isSup);
+    $('entry-name').value = S.user.name;
+    var np = nowParts();
+    fillTimeSelect($('entry-hour'), 24, np.h);
+    fillTimeSelect($('entry-min'), 60, np.m);
+    showScreen('app');
+    await loadEntries();
+    if (isSup) { await loadUsers(); }
+  }
+
+  // ---------- setup / login / logout ----------
+  $('setup-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    $('setup-error').innerHTML = '';
+    try {
+      var res = await api('/api/setup', 'POST', {
+        name: $('setup-name').value.trim(),
+        username: $('setup-username').value.trim(),
+        password: $('setup-password').value
+      });
+      S.token = res.token; S.user = res.user;
+      localStorage.setItem('cs_token', S.token);
+      await enterApp();
+    } catch (err) {
+      $('setup-error').innerHTML = '<div class="auth-error">' + esc(err.message) + '</div>';
+    }
+  });
+
+  $('login-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    $('login-error').innerHTML = '';
+    try {
+      var res = await api('/api/login', 'POST', {
+        username: $('login-username').value.trim(),
+        password: $('login-password').value
+      });
+      S.token = res.token; S.user = res.user;
+      localStorage.setItem('cs_token', S.token);
+      await enterApp();
+    } catch (err) {
+      $('login-error').innerHTML = '<div class="auth-error">' + esc(err.message) + '</div>';
+    }
+  });
+
+  $('btn-logout').addEventListener('click', function () {
+    localStorage.removeItem('cs_token');
+    S.token = null; S.user = null;
+    location.reload();
+  });
+
+  // ---------- tabs ----------
+  document.querySelectorAll('.tab-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var view = btn.getAttribute('data-view');
+      S.view = view;
+      document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.toggle('active', b === btn); });
+      ['registro', 'papelera', 'personal'].forEach(function (v) {
+        $('view-' + v).classList.toggle('hidden', v !== view);
+      });
+      if (view === 'papelera') loadTrash();
+      if (view === 'personal') loadUsers();
     });
   });
-  list.querySelectorAll('.return-btn').forEach(btn=>{
-    btn.addEventListener('click', async ()=>{
-      const id = btn.getAttribute('data-id');
-      const entry = entries.find(e=>e.id===id);
-      if(!entry) return;
-      const markReturn = btn.getAttribute('data-mark') === 'return';
-      btn.disabled = true;
-      try{
-        const res = await apiFetch('/api/entries', {
-          method:'PUT',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({
-            id,
-            status: markReturn ? 'regreso' : 'fuera',
-            returnTime: markReturn ? nowTimeStr() : null
-          })
-        });
-        if(!res.ok) throw new Error('update failed');
-        const data = await res.json();
-        Object.assign(entry, data.entry);
-        render();
-      }catch(e){
-        console.error(e);
-        toast('No se pudo actualizar el regreso.');
+
+  // ---------- registro: crear ----------
+  $('entry-now').addEventListener('click', function () {
+    var np = nowParts();
+    $('entry-hour').value = np.h; $('entry-min').value = np.m;
+  });
+
+  $('entry-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    try {
+      await api('/api/entries', 'POST', {
+        code: $('entry-code').value.trim(),
+        name: $('entry-name').value.trim(),
+        time: $('entry-hour').value + ':' + $('entry-min').value,
+        obs: $('entry-obs').value.trim()
+      });
+      $('entry-code').value = ''; $('entry-obs').value = '';
+      $('entry-name').value = S.user.name;
+      var np = nowParts(); $('entry-hour').value = np.h; $('entry-min').value = np.m;
+      await loadEntries();
+      toast('Salida registrada');
+    } catch (err) { toast(err.message); }
+  });
+
+  async function loadEntries() {
+    try {
+      var res = await api('/api/entries');
+      S.entries = res.entries || [];
+      renderEntries();
+      renderStats();
+    } catch (err) { toast(err.message); }
+  }
+
+  function renderStats() {
+    var todays = S.entries.filter(function (e) { return isToday(e.createdAt); });
+    var out = todays.filter(function (e) { return e.status !== 'regreso'; }).length;
+    var inn = todays.filter(function (e) { return e.status === 'regreso'; }).length;
+    $('stat-out').textContent = out;
+    $('stat-in').textContent = inn;
+  }
+
+  function groupByDay(list) {
+    var groups = {}, order = [];
+    list.slice().sort(function (a, b) { return b.createdAt - a.createdAt; }).forEach(function (e) {
+      var key = fmtDay(e.createdAt);
+      if (!groups[key]) { groups[key] = []; order.push(key); }
+      groups[key].push(e);
+    });
+    return order.map(function (k) { return { label: k, items: groups[k] }; });
+  }
+
+  function historyHtml(entry) {
+    if (!entry.history || !entry.history.length) return '';
+    var rows = entry.history.map(function (h) {
+      var from = h.from == null ? '—' : esc(String(h.from));
+      var to = h.to == null ? '—' : esc(String(h.to));
+      return '<div class="history-item"><b>' + esc(h.field) + '</b>: ' + from + ' → ' + to +
+        ' <span style="opacity:.7">(' + esc(h.byName || '') + ', ' + fmtWhen(h.at) + ')</span></div>';
+    }).join('');
+    return '<div class="history-box hidden" data-hist="' + entry.id + '">' + rows + '</div>';
+  }
+
+  function entryHtml(e, opts) {
+    opts = opts || {};
+    var isOut = e.status !== 'regreso';
+    var canEdit = S.user.role === 'supervisor' || e.workerId === S.user.uid || e.workerId === S.user.id;
+    var actions = '';
+    if (!opts.trashed) {
+      actions += '<button class="btn btn-ghost btn-small" data-act="edit-time" data-id="' + e.id + '">Editar hora</button>';
+      if (isOut) {
+        actions += '<button class="btn btn-success btn-small" data-act="mark-return" data-id="' + e.id + '">Marcar regreso</button>';
+      } else {
+        actions += '<button class="btn btn-ghost btn-small" data-act="undo-return" data-id="' + e.id + '">Deshacer regreso</button>';
       }
-      btn.disabled = false;
-    });
-  });
-
-  list.querySelectorAll('.time-edit').forEach(inp=>{
-    inp.addEventListener('change', async ()=>{
-      const id = inp.getAttribute('data-id');
-      const entry = entries.find(e=>e.id===id);
-      if(!entry) return;
-      const prevTime = entry.time;
-      const newTime = inp.value;
-      try{
-        const res = await apiFetch('/api/entries', {
-          method:'PUT',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ id, time:newTime })
-        });
-        if(!res.ok) throw new Error('update failed');
-        entry.time = newTime;
-      }catch(e){
-        console.error(e);
-        toast('No se pudo actualizar la hora.');
-        inp.value = prevTime;
+      actions += '<button class="btn btn-ghost btn-small" data-act="share-one" data-id="' + e.id + '">Compartir</button>';
+      if (e.history && e.history.length) {
+        actions += '<button class="btn btn-ghost btn-small" data-act="toggle-hist" data-id="' + e.id + '">Historial</button>';
       }
-    });
+      if (canEdit) {
+        actions += '<button class="btn btn-danger btn-small" data-act="trash" data-id="' + e.id + '">Eliminar</button>';
+      }
+    } else {
+      actions += '<button class="btn btn-success btn-small" data-act="restore" data-id="' + e.id + '">Restaurar</button>';
+      actions += '<button class="btn btn-danger btn-small" data-act="purge" data-id="' + e.id + '">Eliminar definitivamente</button>';
+    }
+    return '' +
+      '<div class="entry" data-entry="' + e.id + '">' +
+        '<div class="entry-top">' +
+          '<div class="entry-id">' +
+            '<span class="code-badge">' + esc(e.code) + '</span>' +
+            '<div><div class="entry-name">' + esc(e.name) + '</div>' +
+              '<div class="entry-meta">' + esc(e.workerName || '') + (opts.trashed ? ' · eliminado ' + fmtWhen(e.deletedAt) : '') + '</div></div>' +
+          '</div>' +
+          '<span class="pill ' + (isOut ? 'out' : 'in') + '">' + (isOut ? 'FUERA' : 'REGRESÓ') + '</span>' +
+        '</div>' +
+        '<div class="entry-meta">Salida ' + esc(e.time) + (e.returnTime ? ' · Regreso ' + esc(e.returnTime) : '') + '</div>' +
+        (e.obs ? '<div class="entry-obs">' + esc(e.obs) + '</div>' : '') +
+        '<div class="entry-edit-row hidden" data-edit="' + e.id + '">' +
+          '<select data-h="' + e.id + '"></select><span>:</span><select data-m="' + e.id + '"></select>' +
+          '<button class="btn btn-primary btn-small" data-act="save-time" data-id="' + e.id + '">Guardar</button>' +
+        '</div>' +
+        '<div class="entry-edit-row hidden" data-return="' + e.id + '">' +
+          '<select data-rh="' + e.id + '"></select><span>:</span><select data-rm="' + e.id + '"></select>' +
+          '<button class="btn btn-success btn-small" data-act="confirm-return" data-id="' + e.id + '">Confirmar regreso</button>' +
+        '</div>' +
+        '<div class="entry-actions">' + actions + '</div>' +
+        historyHtml(e) +
+      '</div>';
+  }
+
+  function renderEntries() {
+    var box = $('entries-list');
+    if (!S.entries.length) { box.innerHTML = '<div class="empty-state">Sin registros. Cuando alguien saque un vehículo, regístralo arriba.</div>'; return; }
+    var groups = groupByDay(S.entries);
+    box.innerHTML = groups.map(function (g) {
+      return '<div class="day-label">' + esc(g.label) + '</div>' + g.items.map(function (e) { return entryHtml(e); }).join('');
+    }).join('');
+  }
+
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-act]');
+    if (!b) return;
+    var act = b.getAttribute('data-act'), id = b.getAttribute('data-id');
+    if (act === 'edit-time') {
+      var row = document.querySelector('[data-edit="' + id + '"]');
+      var entry = S.entries.concat(S.trash).find(function (x) { return x.id === id; });
+      var parts = (entry.time || '00:00').split(':');
+      fillTimeSelect(row.querySelector('[data-h="' + id + '"]'), 24, parts[0]);
+      fillTimeSelect(row.querySelector('[data-m="' + id + '"]'), 60, parts[1]);
+      row.classList.toggle('hidden');
+    } else if (act === 'save-time') {
+      var row2 = document.querySelector('[data-edit="' + id + '"]');
+      var h = row2.querySelector('[data-h="' + id + '"]').value, m = row2.querySelector('[data-m="' + id + '"]').value;
+      updateEntry(id, { time: h + ':' + m });
+    } else if (act === 'mark-return') {
+      var row3 = document.querySelector('[data-return="' + id + '"]');
+      var np = nowParts();
+      fillTimeSelect(row3.querySelector('[data-rh="' + id + '"]'), 24, np.h);
+      fillTimeSelect(row3.querySelector('[data-rm="' + id + '"]'), 60, np.m);
+      row3.classList.toggle('hidden');
+    } else if (act === 'confirm-return') {
+      var row4 = document.querySelector('[data-return="' + id + '"]');
+      var rh = row4.querySelector('[data-rh="' + id + '"]').value, rm = row4.querySelector('[data-rm="' + id + '"]').value;
+      updateEntry(id, { status: 'regreso', returnTime: rh + ':' + rm });
+    } else if (act === 'undo-return') {
+      updateEntry(id, { status: 'fuera', returnTime: null });
+    } else if (act === 'toggle-hist') {
+      var h2 = document.querySelector('[data-hist="' + id + '"]');
+      if (h2) h2.classList.toggle('hidden');
+    } else if (act === 'trash') {
+      if (confirm('¿Enviar este registro a la papelera?')) deleteEntry(id);
+    } else if (act === 'restore') {
+      restoreEntry(id);
+    } else if (act === 'purge') {
+      if (confirm('Esto elimina el registro para siempre. ¿Continuar?')) purgeEntry(id);
+    } else if (act === 'share-one') {
+      shareOne(id);
+    }
   });
-}
 
-function escapeHtml(s){
-  const d = document.createElement('div');
-  d.textContent = s || '';
-  return d.innerHTML;
-}
-
-document.getElementById('btn-save').addEventListener('click', async ()=>{
-  const codeEl = document.getElementById('f-code');
-  const nameEl = document.getElementById('f-name');
-  const timeEl = document.getElementById('f-time');
-  const obsEl = document.getElementById('f-obs');
-
-  const code = codeEl.value.trim();
-  const name = nameEl.value.trim();
-  const time = timeEl.value || nowTimeStr();
-  const obs = obsEl.value.trim();
-
-  if(!code || !name){
-    toast('Falta el código o el nombre.');
-    return;
+  async function updateEntry(id, patch) {
+    try { patch.id = id; await api('/api/entries', 'PUT', patch); await loadEntries(); toast('Registro actualizado'); }
+    catch (err) { toast(err.message); }
+  }
+  async function deleteEntry(id) {
+    try { await api('/api/entries?id=' + encodeURIComponent(id), 'DELETE'); await loadEntries(); toast('Enviado a la papelera'); }
+    catch (err) { toast(err.message); }
+  }
+  async function restoreEntry(id) {
+    try { await api('/api/trash/restore', 'POST', { id: id }); await loadTrash(); await loadEntries(); toast('Registro restaurado'); }
+    catch (err) { toast(err.message); }
+  }
+  async function purgeEntry(id) {
+    try { await api('/api/trash?id=' + encodeURIComponent(id), 'DELETE'); await loadTrash(); toast('Eliminado para siempre'); }
+    catch (err) { toast(err.message); }
   }
 
-  const btn = document.getElementById('btn-save');
-  btn.disabled = true;
-  btn.textContent = 'Guardando...';
-
-  try{
-    const res = await apiFetch('/api/entries', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ code, name, time, obs })
-    });
-    if(!res.ok) throw new Error('save failed');
-    const data = await res.json();
-    entries.unshift(data.entry);
-    entries.sort((a,b)=> b.createdAt - a.createdAt);
-    render();
-    codeEl.value=''; nameEl.value=''; obsEl.value='';
-    timeEl.value = nowTimeStr();
-    codeEl.focus();
-    toast('Salida registrada');
-  }catch(e){
-    console.error(e);
-    toast('No se pudo guardar. Intenta de nuevo.');
+  // ---------- papelera ----------
+  async function loadTrash() {
+    try {
+      var res = await api('/api/trash');
+      S.trash = res.entries || [];
+      var box = $('trash-list');
+      if (!S.trash.length) { box.innerHTML = '<div class="empty-state">La papelera está vacía.</div>'; return; }
+      var groups = groupByDay(S.trash);
+      box.innerHTML = groups.map(function (g) {
+        return '<div class="day-label">' + esc(g.label) + '</div>' + g.items.map(function (e) { return entryHtml(e, { trashed: true }); }).join('');
+      }).join('');
+    } catch (err) { toast(err.message); }
   }
 
-  btn.disabled = false;
-  btn.textContent = 'Registrar salida';
-});
-
-document.getElementById('btn-copy').addEventListener('click', ()=>{
-  const today = new Date().toDateString();
-  const todays = entries.filter(e => new Date(e.createdAt).toDateString() === today);
-  if(todays.length === 0){
-    toast('No hay registros de hoy');
-    return;
-  }
-  const sorted = [...todays].sort((a,b)=> a.time.localeCompare(b.time));
-  const dateStr = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'2-digit', year:'numeric'});
-  let text = `Operativa comercial\n${dateStr}\n\n`;
-  text += sorted.map(e => `${e.code} ${e.name}`).join('\n\n');
-
-  navigator.clipboard.writeText(text).then(()=>{
-    const btn = document.getElementById('btn-copy');
-    btn.classList.add('copied');
-    btn.textContent = 'Copiado ✓';
-    setTimeout(()=>{ btn.classList.remove('copied'); btn.textContent = 'Copiar lista de hoy'; }, 1800);
-  }).catch(()=>{
-    toast('No se pudo copiar');
+  // ---------- personal (supervisores) ----------
+  $('user-form').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    try {
+      await api('/api/users', 'POST', {
+        name: $('user-name').value.trim(),
+        username: $('user-username').value.trim(),
+        password: $('user-password').value,
+        role: $('user-role').value
+      });
+      $('user-form').reset();
+      await loadUsers();
+      toast('Cuenta creada');
+    } catch (err) { toast(err.message); }
   });
-});
 
-// init
-document.getElementById('f-time').value = nowTimeStr();
-if(accessCode){
-  showApp();
-  loadEntries();
-} else {
-  showGate();
-}
+  async function loadUsers() {
+    try {
+      var res = await api('/api/users');
+      S.users = res.users || [];
+      var box = $('users-list');
+      if (!S.users.length) { box.innerHTML = '<div class="empty-state">Sin cuentas todavía.</div>'; return; }
+      box.innerHTML = S.users.map(function (u) {
+        var mine = (u.id === (S.user.uid || S.user.id));
+        return '<div class="user-row">' +
+          '<div><div class="name">' + esc(u.name) + (mine ? ' (tú)' : '') + '</div><div class="uname">@' + esc(u.username) + '</div></div>' +
+          '<div style="display:flex;align-items:center;gap:8px">' +
+            '<span class="role-badge ' + u.role + '">' + (u.role === 'supervisor' ? 'Supervisor' : 'Personal') + '</span>' +
+            (mine ? '' : '<button class="btn btn-danger btn-small" data-del-user="' + u.id + '">Eliminar</button>') +
+          '</div>' +
+        '</div>';
+      }).join('');
+    } catch (err) { toast(err.message); }
+  }
+
+  document.addEventListener('click', async function (e) {
+    var b = e.target.closest('button[data-del-user]');
+    if (!b) return;
+    var id = b.getAttribute('data-del-user');
+    if (!confirm('¿Eliminar esta cuenta? No podrá volver a iniciar sesión.')) return;
+    try { await api('/api/users?id=' + encodeURIComponent(id), 'DELETE'); await loadUsers(); toast('Cuenta eliminada'); }
+    catch (err) { toast(err.message); }
+  });
+
+  // ---------- compartir como imagen ----------
+  async function renderCardImage(title, dateLabel, lines) {
+    if (document.fonts && document.fonts.ready) { try { await document.fonts.ready; } catch (e) {} }
+    var width = 720, margin = 34, maxTextWidth = width - margin * 2;
+    var canvas = document.createElement('canvas');
+    var ctx = canvas.getContext('2d');
+    var lineHeight = 30;
+    var headerH = 108;
+    var footerH = 60;
+    var height = headerH + Math.max(lines.length, 1) * lineHeight + footerH;
+    canvas.width = width; canvas.height = height;
+
+    ctx.fillStyle = '#0b0e13'; ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#e8792f'; ctx.fillRect(0, 0, width, 6);
+
+    ctx.fillStyle = '#eaf0fb';
+    ctx.font = '800 26px Inter, sans-serif';
+    ctx.fillText(title, margin, 52);
+    ctx.fillStyle = '#77839c';
+    ctx.font = '600 15px Inter, sans-serif';
+    ctx.fillText(dateLabel, margin, 78);
+    ctx.strokeStyle = '#262c36'; ctx.beginPath(); ctx.moveTo(margin, 96); ctx.lineTo(width - margin, 96); ctx.stroke();
+
+    var y = headerH + 20;
+    lines.forEach(function (l) {
+      var size = 18;
+      ctx.font = (l.bold ? '700 ' : '400 ') + size + 'px Inter, sans-serif';
+      while (ctx.measureText(l.text).width > maxTextWidth && size > 12) {
+        size -= 1;
+        ctx.font = (l.bold ? '700 ' : '400 ') + size + 'px Inter, sans-serif';
+      }
+      ctx.fillStyle = l.color || '#eaf0fb';
+      ctx.fillText(l.text, margin, y);
+      y += lineHeight;
+    });
+
+    ctx.fillStyle = '#4d5568';
+    ctx.font = '600 12px Inter, sans-serif';
+    ctx.fillText('GEMSA · Control de Salidas', margin, height - 24);
+
+    return canvas;
+  }
+
+  async function shareCanvas(canvas, filename, shareTitle, shareText) {
+    canvas.toBlob(async function (blob) {
+      if (!blob) { toast('No se pudo generar la imagen'); return; }
+      var file = new File([blob], filename, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try { await navigator.share({ files: [file], title: shareTitle, text: shareText }); }
+        catch (e) { /* el usuario canceló el compartir, no hacer nada */ }
+      } else {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a'); a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+        toast('Tu navegador no admite compartir directo: se descargó la imagen.');
+      }
+    }, 'image/png');
+  }
+
+  $('btn-share-day').addEventListener('click', async function () {
+    var todays = S.entries.filter(function (e) { return isToday(e.createdAt); });
+    if (!todays.length) { toast('No hay registros de hoy para compartir'); return; }
+    var d = new Date();
+    var dateLabel = pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + '/' + d.getFullYear();
+    var lines = todays.map(function (e) {
+      return { text: e.code + '   ' + e.name + (e.status === 'regreso' ? '  (regresó ' + e.returnTime + ')' : '  (fuera desde ' + e.time + ')'), bold: false };
+    });
+    var canvas = await renderCardImage('Operativa comercial', dateLabel, lines);
+    shareCanvas(canvas, 'operativa-' + dateLabel.replace(/\//g, '-') + '.png', 'Operativa comercial ' + dateLabel, 'Operativa comercial ' + dateLabel);
+  });
+
+  async function shareOne(id) {
+    var e = S.entries.concat(S.trash).find(function (x) { return x.id === id; });
+    if (!e) return;
+    var d = new Date(e.createdAt);
+    var dateLabel = pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + '/' + d.getFullYear();
+    var lines = [
+      { text: e.code + '   ' + e.name, bold: true },
+      { text: 'Salida: ' + e.time },
+      { text: e.status === 'regreso' ? 'Regreso: ' + e.returnTime : 'Aún fuera' }
+    ];
+    if (e.obs) lines.push({ text: 'Obs: ' + e.obs });
+    var canvas = await renderCardImage('Control de Salidas', dateLabel, lines);
+    shareCanvas(canvas, 'registro-' + e.code + '.png', e.code + ' ' + e.name, e.code + ' ' + e.name);
+  }
+
+  boot();
+})();
 </script>
 </body>
 </html>
