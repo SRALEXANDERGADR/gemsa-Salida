@@ -43,5 +43,20 @@
     "editedAt": null,
     "deletedAt": null,
     "history": []
+  },
+  {
+    "id": "673ff0e6-225d-4e13-9688-5036668d890d",
+    "code": "GD-67",
+    "name": "Ale",
+    "time": "20:35",
+    "obs": "",
+    "status": "fuera",
+    "returnTime": null,
+    "workerId": null,
+    "workerUsername": null,
+    "createdAt": 1790210296367,
+    "editedAt": null,
+    "deletedAt": null,
+    "history": []
   }
 ]
