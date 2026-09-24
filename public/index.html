@@ -29,7 +29,8 @@
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:var(--sans);}
-  body{padding-bottom:48px;}
+  html{height:100%;}
+  body{min-height:100%;}
 
   header{position:sticky; top:0; z-index:20; background:var(--bg); border-bottom:1px solid var(--line); padding:16px 16px 0;}
   .header-top{display:flex; align-items:flex-start; justify-content:space-between; gap:10px;}
@@ -45,7 +46,7 @@
   .tab .n{color:var(--text-faint); font-weight:500;}
   .tab.active .n{color:var(--accent);}
 
-  main{max-width:640px; margin:0 auto; padding:16px;}
+  main{max-width:640px; margin:0 auto; padding:16px; width:100%; flex:1 0 auto;}
 
   .card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:16px; margin-bottom:16px;}
 
@@ -58,11 +59,15 @@
   .two-col{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
 
   .time-picker{display:flex; align-items:center; gap:6px;}
-  .time-picker select{font-family:var(--mono); font-weight:600; text-align:center; padding:11px 4px; flex:1;}
-  .time-picker .colon{color:var(--text-dim); font-weight:700;}
+  .time-picker select{font-family:var(--mono); font-weight:600; font-size:16px;
+    text-align:center; text-align-last:center; padding:11px 6px; flex:1 1 0; min-width:0;
+    appearance:none; -webkit-appearance:none; -moz-appearance:none; background-image:none;}
+  .time-picker .colon{color:var(--text-dim); font-weight:700; flex-shrink:0;}
   .time-now-btn{background:var(--panel-raised); border:1px solid var(--line); color:var(--text-dim);
-    border-radius:7px; padding:0 12px; font-size:16px; flex-shrink:0;}
+    border-radius:7px; padding:0 11px; font-size:15px; flex-shrink:0; min-height:42px;}
   .time-now-btn:active{color:var(--accent); border-color:var(--accent);}
+  /* En pantallas angostas la hora ocupa toda la fila para que nunca se recorte */
+  @media (max-width:359px){ .two-col{grid-template-columns:1fr;} }
 
   button{font-family:inherit; cursor:pointer; border:none;}
   .btn-primary{width:100%; background:var(--accent); color:var(--accent-ink); font-weight:700; font-size:15px;
@@ -73,6 +78,7 @@
   .section-title h2{font-size:12px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim); font-weight:700; margin:0;}
   .copy-btn{background:var(--panel-raised); color:var(--text); border:1px solid var(--line); border-radius:7px;
     padding:8px 12px; font-size:12.5px; font-weight:600;}
+  .list-actions{display:flex; gap:6px; flex-shrink:0;}
   .copy-btn.copied{color:var(--ok); border-color:var(--ok);}
 
   .day-label{font-size:11.5px; color:var(--text-dim); font-weight:700; margin:16px 0 8px; text-transform:uppercase; letter-spacing:0.03em;}
@@ -98,10 +104,24 @@
   .icon-btn.danger:active{color:var(--danger); border-color:var(--danger);}
   .icon-btn svg{width:16px; height:16px;}
 
-  .entry-row2{display:flex; align-items:center; justify-content:space-between; margin-top:10px; gap:8px;}
+  .entry-row2{display:flex; align-items:center; flex-wrap:wrap; margin-top:10px; gap:8px;}
   .return-btn{background:var(--panel-raised); color:var(--ok); border:1px solid var(--ok); border-radius:6px;
-    padding:6px 11px; font-size:12px; font-weight:700;}
+    padding:7px 12px; font-size:12px; font-weight:700;}
   .return-btn.undo{color:var(--text-dim); border-color:var(--line);}
+  .return-btn:disabled, .save-time-btn:disabled{opacity:.55;}
+  .edit-time-btn{background:transparent; color:var(--text-dim); border:1px solid var(--line); border-radius:6px;
+    padding:7px 12px; font-size:12px; font-weight:700;}
+  .edit-time-btn:active{color:var(--accent); border-color:var(--accent);}
+  .edit-time-row{display:none; align-items:center; gap:6px; margin-top:10px; padding-top:10px;
+    border-top:1px dashed var(--line);}
+  .edit-time-row.open{display:flex;}
+  .edit-time-row select{font-family:var(--mono); font-weight:600; font-size:15px; text-align:center;
+    text-align-last:center; background:var(--panel-raised); border:1px solid var(--line); color:var(--text);
+    border-radius:7px; padding:9px 6px; flex:1 1 0; min-width:0;
+    appearance:none; -webkit-appearance:none; -moz-appearance:none;}
+  .edit-time-row .colon{color:var(--text-dim); font-weight:700; flex-shrink:0;}
+  .save-time-btn{background:var(--accent); color:var(--accent-ink); border-radius:6px; padding:9px 13px;
+    font-size:12px; font-weight:700; flex-shrink:0;}
 
   .history{margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); display:none;}
   .history.open{display:block;}
@@ -116,15 +136,17 @@
 
   .empty{text-align:center; color:var(--text-dim); font-size:13.5px; padding:32px 20px; border:1px dashed var(--line); border-radius:var(--radius);}
 
-  footer{max-width:640px; margin:8px auto 0; padding:22px 16px 6px; text-align:center; border-top:1px solid var(--line);}
+  footer{max-width:640px; margin:8px auto 0; padding:22px 16px 18px; text-align:center;
+    border-top:1px solid var(--line); width:100%; flex-shrink:0;}
 
   /* Insignia de crédito "GADR Net" — colores fijos de marca, igual que en jb-tech-store */
   .gadr-credit{display:inline-flex; flex-direction:column; align-items:center; gap:10px; text-decoration:none; opacity:.85; transition:opacity .25s ease;}
   .gadr-credit:hover{opacity:1;}
   .gadr-credit-text{font-size:11px; color:var(--text-faint); text-align:center;}
   .gadr-mark{display:flex; flex-direction:column; align-items:center; line-height:1; flex-shrink:0;}
-  .gadr-mark-icon{position:relative; font:700 16px/1 'Segoe UI', monospace; letter-spacing:-1px; color:#D8CDB0;}
-  .gadr-mark-icon i{position:absolute; top:-4px; right:-7px; width:4px; height:4px; border-radius:50%; background:#B2603C;}
+  .gadr-mark-icon{position:relative; display:inline-block; width:26px; height:16px; text-align:center;
+    font:700 16px/1 'Segoe UI', monospace; letter-spacing:-1px; color:#D8CDB0;}
+  .gadr-mark-icon i{position:absolute; top:-3px; right:0; width:4px; height:4px; border-radius:50%; background:#B2603C;}
   .gadr-mark-word{display:block; font-weight:900; font-size:13px; letter-spacing:0.04em; color:var(--text); text-align:center; margin-top:3px;}
   .gadr-mark-word small{display:block; font-weight:700; font-size:7px; letter-spacing:0.22em; color:#9FAD90; margin-top:1px;}
 
@@ -137,7 +159,7 @@
   #gate input[type="password"]{text-align:center; letter-spacing:0.05em;}
   #gate input:focus{outline:none; border-color:var(--accent);}
   #gate .err{color:var(--danger); font-size:12.5px; margin-top:8px; min-height:16px;}
-  #app, #worker-app{display:none;}
+  #app, #worker-app{display:none; min-height:100vh; flex-direction:column;}
 
   .gate-tabs{display:flex; gap:6px; margin-bottom:20px; background:var(--panel-raised); border-radius:8px; padding:3px;}
   .gate-tab{flex:1; padding:9px 6px; font-size:12.5px; font-weight:600; color:var(--text-dim); background:transparent; border-radius:6px; font-family:inherit;}
@@ -154,7 +176,7 @@
     padding:8px 12px; font-size:12.5px; font-weight:600;}
   .logout-btn:active{color:var(--danger); border-color:var(--danger);}
 
-  .admin-topbar{display:flex; align-items:center; justify-content:flex-end; padding:10px 16px 0;}
+  .header-right{display:flex; align-items:center; gap:10px; flex-shrink:0;}
 
   .staff-row{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px;
     margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:10px;}
@@ -172,7 +194,7 @@
   .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
 
   /* Nodo fuera de pantalla usado para generar la imagen al compartir */
-  #share-render{position:fixed; left:-9999px; top:0; width:420px; background:#ffffff; font-family:var(--sans);}
+  #share-render{position:fixed; left:-9999px; top:0; width:460px; background:#ffffff; font-family:var(--sans); color:#14161a;}
 </style>
 </head>
 <body>
@@ -214,7 +236,10 @@
       <h1>Control de Salidas</h1>
       <div class="sub"><span class="status-dot"></span>GEMSA · registro compartido · 30 días</div>
     </div>
-    <div class="clock" id="live-clock">--:--</div>
+    <div class="header-right">
+      <div class="clock" id="live-clock">--:--</div>
+      <button class="logout-btn" id="admin-logout-btn">Salir</button>
+    </div>
   </div>
   <div class="tabs">
     <button class="tab active" id="tab-active" data-tab="active">Registros <span class="n" id="count-active"></span></button>
@@ -222,13 +247,12 @@
     <button class="tab" id="tab-staff" data-tab="staff">Personal <span class="n" id="count-staff"></span></button>
   </div>
 </header>
-<div class="admin-topbar"><button class="logout-btn" id="admin-logout-btn">Salir</button></div>
 
 <main>
   <div class="card" id="form-card">
     <div class="field code">
       <label for="f-code">Código de vehículo</label>
-      <input id="f-code" type="text" placeholder="Ej. GD-156" autocomplete="off">
+      <input id="f-code" type="text" placeholder="Ej. GD-156" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="10">
     </div>
     <div class="field">
       <label for="f-name">Trabajador(es)</label>
@@ -254,7 +278,10 @@
 
   <div class="section-title">
     <h2 id="list-title">Registros</h2>
-    <button class="copy-btn" id="btn-copy">Copiar lista de hoy</button>
+    <div class="list-actions">
+      <button class="copy-btn" id="btn-share-day">Compartir imagen</button>
+      <button class="copy-btn" id="btn-copy">Copiar texto</button>
+    </div>
   </div>
 
   <div id="list"></div>
@@ -304,7 +331,7 @@
     <div class="card">
       <div class="field code">
         <label for="wf-code">Código de vehículo</label>
-        <input id="wf-code" type="text" placeholder="Ej. GD-156" autocomplete="off">
+        <input id="wf-code" type="text" placeholder="Ej. GD-156" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="10">
       </div>
       <div class="two-col">
         <div class="field">
@@ -344,6 +371,14 @@
 
 <script>
 const RETENTION_DAYS = 30;
+// Formato de las unidades de GEMSA: 1-4 letras, guion, 1-5 numeros (GD-156, G-101, GD-21)
+const CODE_PATTERN = /^[A-Z]{1,4}-\d{1,5}$/;
+function normalizeCode(raw){
+  // Acepta "gd156", "gd 156" o "GD-156" y lo deja siempre como GD-156
+  var v = (raw||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  var m = v.match(/^([A-Z]{1,4})(\d{1,5})$/);
+  return m ? (m[1] + '-' + m[2]) : (raw||'').trim().toUpperCase();
+}
 let entries = [];
 let trashEntries = [];
 let staff = [];
@@ -370,6 +405,11 @@ function timeStrFromPicker(hourId='f-hour', minId='f-minute'){
 function setPickerTo(hourId, minId, h, m){
   document.getElementById(hourId).value = h;
   document.getElementById(minId).value = m;
+}
+function timeOptionsHtml(selected, max){
+  var out = '';
+  for(var i=0;i<max;i++){ out += '<option value="'+i+'"'+(pad2(i)===pad2(selected)?' selected':'')+'>'+pad2(i)+'</option>'; }
+  return out;
 }
 function populatePicker(hourId, minId){
   const hourSel = document.getElementById(hourId);
@@ -421,6 +461,16 @@ async function loadEntries(){
   }catch(e){ console.error(e); toast('No se pudieron cargar los registros.'); entries = []; }
   if(currentRole === 'worker') renderWorkerList(); else render();
 }
+// Carga papelera y personal al entrar, para que los contadores de las pestañas
+// aparezcan desde el primer momento y no solo al visitar cada pestaña.
+async function loadAdminExtras(){
+  try{
+    const [tRes, sRes] = await Promise.all([ apiFetch('/api/entries/trash'), apiFetch('/api/users') ]);
+    if(tRes.ok){ const d = await tRes.json(); trashEntries = (d.entries||[]).sort((a,b)=> b.deletedAt - a.deletedAt); }
+    if(sRes.ok){ const d = await sRes.json(); staff = (d.users||[]).sort((a,b)=> a.name.localeCompare(b.name)); }
+  }catch(e){ console.error(e); }
+  render();
+}
 async function loadTrash(){
   try{
     const res = await apiFetch('/api/entries/trash');
@@ -446,12 +496,12 @@ function showGate(errMsg, tab){
 function showApp(){
   document.getElementById('gate').style.display = 'none';
   document.getElementById('worker-app').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
+  document.getElementById('app').style.display = 'flex';
 }
 function showWorkerApp(){
   document.getElementById('gate').style.display = 'none';
   document.getElementById('app').style.display = 'none';
-  document.getElementById('worker-app').style.display = 'block';
+  document.getElementById('worker-app').style.display = 'flex';
   document.getElementById('worker-greeting').textContent = 'Hola, ' + (workerInfo ? workerInfo.name.split(' ')[0] : '');
 }
 
@@ -473,7 +523,7 @@ document.getElementById('gate-btn').addEventListener('click', async ()=>{
   if(res.status === 401){ document.getElementById('gate-err').textContent = 'Clave incorrecta.'; accessCode = ''; currentRole = null; return; }
   localStorage.setItem('cs_access_code', val);
   localStorage.setItem('cs_role', 'admin');
-  showApp(); loadEntries();
+  showApp(); loadEntries(); loadAdminExtras();
 });
 document.getElementById('gate-input').addEventListener('keydown', (e)=>{ if(e.key==='Enter') document.getElementById('gate-btn').click(); });
 
@@ -519,7 +569,7 @@ function switchTab(tab){
   document.getElementById('tab-trash').classList.toggle('active', tab==='trash');
   document.getElementById('tab-staff').classList.toggle('active', tab==='staff');
   document.getElementById('form-card').style.display = tab==='active' ? 'block' : 'none';
-  document.getElementById('btn-copy').style.display = tab==='active' ? 'inline-block' : 'none';
+  document.querySelector('.list-actions').style.display = tab==='active' ? 'flex' : 'none';
   document.getElementById('list').style.display = tab==='staff' ? 'none' : 'block';
   document.getElementById('staff-form-card').style.display = tab==='staff' ? 'block' : 'none';
   document.getElementById('staff-list').style.display = tab==='staff' ? 'block' : 'none';
@@ -528,13 +578,16 @@ function switchTab(tab){
   if(tab==='trash') loadTrash();
   if(tab==='staff') loadStaff();
   render();
+  // Sin esto, al cambiar de pestaña se conserva el scroll y el formulario
+  // aparece cortado por el encabezado fijo.
+  window.scrollTo({ top:0, behavior:'smooth' });
 }
 
 // ---------- render ----------
 function render(){
-  document.getElementById('count-active').textContent = entries.length ? `(${entries.length})` : '';
-  document.getElementById('count-trash').textContent = trashEntries.length ? `(${trashEntries.length})` : '';
-  document.getElementById('count-staff').textContent = staff.length ? `(${staff.length})` : '';
+  document.getElementById('count-active').textContent = `(${entries.length})`;
+  document.getElementById('count-trash').textContent = `(${trashEntries.length})`;
+  document.getElementById('count-staff').textContent = `(${staff.length})`;
 
   if(currentTab === 'staff'){ renderStaff(); return; }
 
@@ -593,6 +646,13 @@ function renderActiveEntry(e){
         <button class="return-btn ${isBack?'undo':''}" data-id="${e.id}" data-mark="${isBack?'undo':'return'}">
           ${isBack ? 'Deshacer regreso' : 'Marcar regreso'}
         </button>
+        <button class="edit-time-btn" data-id="${e.id}" data-action="toggle-edit-time">Editar hora</button>
+      </div>
+      <div class="edit-time-row" id="edit-time-${e.id}">
+        <select id="eh-${e.id}">${timeOptionsHtml((e.time||'00:00').split(':')[0], 24)}</select>
+        <span class="colon">:</span>
+        <select id="em-${e.id}">${timeOptionsHtml((e.time||'00:00').split(':')[1], 60)}</select>
+        <button class="save-time-btn" data-id="${e.id}" data-action="save-time">Guardar</button>
       </div>
       ${edited ? renderHistory(e) : ''}
     </div>`;
@@ -600,8 +660,12 @@ function renderActiveEntry(e){
 
 function renderHistory(e){
   const rows = e.history.map(h => {
-    const label = h.status !== e.status ? 'estado' : 'hora';
-    return `<div class="history-row">${timeOfDay(h.changedAt)} <span class="arrow">·</span> era ${h.time}${h.obs?(' / '+escapeHtml(h.obs)):''}</div>`;
+    if(h.action){
+      // Formato nuevo: dice qué cambió y de qué valor a qué valor.
+      return `<div class="history-row">${timeOfDay(h.changedAt)} <span class="arrow">·</span> ${escapeHtml(h.action)}: ${escapeHtml(String(h.from))} → ${escapeHtml(String(h.to))}</div>`;
+    }
+    // Registros guardados antes de este arreglo: se muestran como quedaron.
+    return `<div class="history-row">${timeOfDay(h.changedAt)} <span class="arrow">·</span> era ${escapeHtml(String(h.time))}</div>`;
   }).join('');
   return `<div class="history" id="hist-${e.id}"><h4>Historial de ediciones</h4>${rows}</div>`;
 }
@@ -648,7 +712,16 @@ function attachListHandlers(){
     btn.addEventListener('click', ()=> purgeEntry(btn.getAttribute('data-id')));
   });
   document.querySelectorAll('.return-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=> toggleReturn(btn.getAttribute('data-id'), btn.getAttribute('data-mark')==='return'));
+    btn.addEventListener('click', ()=> toggleReturn(btn, btn.getAttribute('data-id'), btn.getAttribute('data-mark')==='return'));
+  });
+  document.querySelectorAll('[data-action="toggle-edit-time"]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const row = document.getElementById('edit-time-' + btn.getAttribute('data-id'));
+      if(row) row.classList.toggle('open');
+    });
+  });
+  document.querySelectorAll('[data-action="save-time"]').forEach(btn=>{
+    btn.addEventListener('click', ()=> saveEditedTime(btn));
   });
 }
 
@@ -657,18 +730,20 @@ document.getElementById('btn-save').addEventListener('click', async ()=>{
   const codeEl = document.getElementById('f-code');
   const nameEl = document.getElementById('f-name');
   const obsEl = document.getElementById('f-obs');
-  const code = codeEl.value.trim();
+  const code = normalizeCode(codeEl.value);
   const name = nameEl.value.trim();
   const time = timeStrFromPicker('f-hour','f-minute');
   const obs = obsEl.value.trim();
   if(!code || !name){ toast('Falta el código o el nombre.'); return; }
+  if(!CODE_PATTERN.test(code)){ toast('Código inválido. Usa el formato de las unidades, ej. GD-156'); codeEl.focus(); return; }
+  codeEl.value = code;
 
   const btn = document.getElementById('btn-save');
   btn.disabled = true; btn.textContent = 'Guardando...';
   try{
     const res = await apiFetch('/api/entries', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code,name,time,obs}) });
-    if(!res.ok) throw new Error('save failed');
-    const data = await res.json();
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error || 'No se pudo guardar.');
     entries.unshift(data.entry);
     entries.sort((a,b)=> b.createdAt - a.createdAt);
     render();
@@ -676,16 +751,18 @@ document.getElementById('btn-save').addEventListener('click', async ()=>{
     const n = nowHM(); setPickerTo('f-hour','f-minute', n.h, n.m);
     codeEl.focus();
     toast('Salida registrada');
-  }catch(e){ console.error(e); toast('No se pudo guardar. Intenta de nuevo.'); }
+  }catch(e){ console.error(e); toast(e.message || 'No se pudo guardar. Intenta de nuevo.'); }
   btn.disabled = false; btn.textContent = 'Registrar salida';
 });
 
 document.getElementById('f-time-now').addEventListener('click', ()=>{ const n = nowHM(); setPickerTo('f-hour','f-minute', n.h, n.m); });
 document.getElementById('wf-time-now').addEventListener('click', ()=>{ const n = nowHM(); setPickerTo('wf-hour','wf-minute', n.h, n.m); });
 
-async function toggleReturn(id, markReturn){
+async function toggleReturn(btn, id, markReturn){
+  if(btn.disabled) return; // sin esto, un doble toque manda dos veces el mismo cambio
   const entry = entries.find(e=>e.id===id);
   if(!entry) return;
+  btn.disabled = true;
   try{
     const res = await apiFetch('/api/entries', {
       method:'PUT', headers:{'Content-Type':'application/json'},
@@ -694,11 +771,30 @@ async function toggleReturn(id, markReturn){
     if(!res.ok) throw new Error('update failed');
     const data = await res.json();
     Object.assign(entry, data.entry);
-    render();
-  }catch(e){ console.error(e); toast('No se pudo actualizar.'); }
+    if(currentRole === 'worker') renderWorkerList(); else render();
+  }catch(e){ console.error(e); toast('No se pudo actualizar.'); btn.disabled = false; }
+}
+
+async function saveEditedTime(btn){
+  if(btn.disabled) return;
+  const id = btn.getAttribute('data-id');
+  const entry = entries.find(e=>e.id===id);
+  if(!entry) return;
+  const time = timeStrFromPicker('eh-'+id, 'em-'+id);
+  if(time === entry.time){ toast('La hora es la misma.'); return; }
+  btn.disabled = true;
+  try{
+    const res = await apiFetch('/api/entries', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ id, time }) });
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error || 'No se pudo actualizar la hora.');
+    Object.assign(entry, data.entry);
+    if(currentRole === 'worker') renderWorkerList(); else render();
+    toast('Hora actualizada');
+  }catch(e){ console.error(e); toast(e.message); btn.disabled = false; }
 }
 
 async function deleteEntry(id){
+  if(!confirm('¿Mover este registro a la papelera?')) return;
   try{
     const res = await apiFetch('/api/entries?id=' + encodeURIComponent(id), { method:'DELETE' });
     if(!res.ok) throw new Error('delete failed');
@@ -747,7 +843,62 @@ document.getElementById('btn-copy').addEventListener('click', ()=>{
   }).catch(()=> toast('No se pudo copiar'));
 });
 
-// ---------- compartir como imagen ----------
+// ---------- compartir la lista del dia como imagen ----------
+async function canvasToShare(canvas, filename, title, text){
+  return new Promise(resolve=>{
+    canvas.toBlob(async (blob)=>{
+      if(!blob){ toast('No se pudo generar la imagen.'); return resolve(); }
+      const file = new File([blob], filename, { type:'image/png' });
+      if(navigator.canShare && navigator.canShare({ files:[file] })){
+        try{ await navigator.share({ files:[file], title, text }); }
+        catch(err){ if(err.name !== 'AbortError') toast('No se pudo compartir.'); }
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
+        setTimeout(()=> URL.revokeObjectURL(url), 5000);
+        toast('Imagen descargada');
+      }
+      resolve();
+    }, 'image/png');
+  });
+}
+
+document.getElementById('btn-share-day').addEventListener('click', async ()=>{
+  const today = new Date().toDateString();
+  const todays = entries.filter(e => new Date(e.createdAt).toDateString() === today)
+                        .sort((a,b)=> (a.time||'').localeCompare(b.time||''));
+  if(todays.length === 0){ toast('No hay registros de hoy'); return; }
+  const btn = document.getElementById('btn-share-day');
+  btn.disabled = true; btn.textContent = 'Generando...';
+  const dateStr = new Date().toLocaleDateString('es-DO', {day:'2-digit', month:'2-digit', year:'numeric'});
+  const holder = document.getElementById('share-render');
+  const rows = todays.map(e => `
+    <tr>
+      <td style="padding:9px 0; font-family:'JetBrains Mono',monospace; font-weight:700; color:#ea6a2e; white-space:nowrap; vertical-align:top;">${escapeHtml(e.code)}</td>
+      <td style="padding:9px 12px; font-size:15px; vertical-align:top;">${escapeHtml(e.name)}</td>
+      <td style="padding:9px 0; font-family:'JetBrains Mono',monospace; font-size:13px; color:#6b7480; text-align:right; white-space:nowrap; vertical-align:top;">
+        ${escapeHtml(e.time||'')}${e.status==='regreso' ? ' → '+escapeHtml(e.returnTime||'') : ''}
+      </td>
+    </tr>`).join('');
+  holder.innerHTML = `
+    <div style="padding:30px 28px; color:#14161a;">
+      <div style="font-size:11px; letter-spacing:.06em; color:#8d96a1; font-weight:700; text-transform:uppercase;">GEMSA</div>
+      <div style="font-size:24px; font-weight:700; margin-top:6px;">Operativa comercial</div>
+      <div style="font-size:14px; color:#6b7480; margin-top:2px;">${dateStr}</div>
+      <table style="width:100%; border-collapse:collapse; margin-top:18px; border-top:1px solid #e4e6e9;">${rows}</table>
+      <div style="margin-top:18px; padding-top:12px; border-top:1px solid #e4e6e9; font-size:11px; color:#9aa2ad;">
+        ${todays.length} unidad${todays.length===1?'':'es'} · Generado por GADR Net
+      </div>
+    </div>`;
+  try{
+    if(typeof html2canvas === 'undefined') throw new Error('No se pudo cargar el generador de imágenes. Revisa tu conexión.');
+    const canvas = await html2canvas(holder, { backgroundColor:'#ffffff', scale:2 });
+    await canvasToShare(canvas, `operativa-${dateStr.replace(/\//g,'-')}.png`, 'Operativa comercial', 'Operativa comercial ' + dateStr);
+  }catch(e){ console.error(e); toast(e.message || 'No se pudo generar la imagen.'); }
+  btn.disabled = false; btn.textContent = 'Compartir imagen';
+});
+
+// ---------- compartir un registro como imagen ----------
 async function shareEntry(id){
   const entry = (currentTab==='active' ? entries : trashEntries).find(e=>e.id===id);
   if(!entry) return;
@@ -767,6 +918,7 @@ async function shareEntry(id){
       <div style="margin-top:20px; font-size:10.5px; color:#b8bfc7;">Generado por GADR Net</div>
     </div>`;
   try{
+    if(typeof html2canvas === 'undefined') throw new Error('No se pudo cargar el generador de imágenes. Revisa tu conexión.');
     const canvas = await html2canvas(holder, { backgroundColor:'#ffffff', scale:2 });
     canvas.toBlob(async (blob)=>{
       if(!blob){ toast('No se pudo generar la imagen.'); return; }
@@ -781,7 +933,7 @@ async function shareEntry(id){
         toast('Imagen descargada');
       }
     }, 'image/png');
-  }catch(e){ console.error(e); toast('No se pudo generar la imagen.'); }
+  }catch(e){ console.error(e); toast(e.message || 'No se pudo generar la imagen.'); }
 }
 
 // ---------- personal (solo admin) ----------
@@ -795,7 +947,7 @@ async function loadStaff(){
   render();
 }
 function renderStaff(){
-  document.getElementById('count-staff').textContent = staff.length ? `(${staff.length})` : '';
+  document.getElementById('count-staff').textContent = `(${staff.length})`;
   const list = document.getElementById('staff-list');
   if(staff.length === 0){ list.innerHTML = '<div class="empty">Aún no hay personal registrado.</div>'; return; }
   list.innerHTML = staff.map(u => `
@@ -868,23 +1020,25 @@ function renderWorkerList(){
 document.getElementById('btn-worker-save').addEventListener('click', async ()=>{
   const codeEl = document.getElementById('wf-code');
   const obsEl = document.getElementById('wf-obs');
-  const code = codeEl.value.trim();
+  const code = normalizeCode(codeEl.value);
   const time = timeStrFromPicker('wf-hour','wf-minute');
   const obs = obsEl.value.trim();
   if(!code){ toast('Falta el código de vehículo.'); return; }
+  if(!CODE_PATTERN.test(code)){ toast('Código inválido. Usa el formato de las unidades, ej. GD-156'); codeEl.focus(); return; }
+  codeEl.value = code;
   const btn = document.getElementById('btn-worker-save');
   btn.disabled = true; btn.textContent = 'Guardando...';
   try{
     const res = await apiFetch('/api/entries', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code,time,obs}) });
-    if(!res.ok) throw new Error('save failed');
-    const data = await res.json();
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error || 'No se pudo guardar.');
     entries.unshift(data.entry);
     entries.sort((a,b)=> b.createdAt - a.createdAt);
     renderWorkerList();
     codeEl.value=''; obsEl.value='';
     const n = nowHM(); setPickerTo('wf-hour','wf-minute', n.h, n.m);
     toast('Salida registrada');
-  }catch(e){ console.error(e); toast('No se pudo guardar. Intenta de nuevo.'); }
+  }catch(e){ console.error(e); toast(e.message || 'No se pudo guardar. Intenta de nuevo.'); }
   btn.disabled = false; btn.textContent = 'Registrar salida';
 });
 
@@ -905,7 +1059,7 @@ async function init(){
     currentRole = null; workerToken='';
   }
   if(currentRole === 'admin' && accessCode){
-    showApp(); loadEntries(); return;
+    showApp(); loadEntries(); loadAdminExtras(); return;
   }
   showGate();
 }

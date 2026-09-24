@@ -19,6 +19,9 @@
 const GITHUB_API = 'https://api.github.com';
 const RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 const PBKDF2_ITERATIONS = 50000;
+// Formato de las unidades de GEMSA: 1-4 letras, guion, 1-5 numeros (GD-156, G-101, GD-21)
+const CODE_PATTERN = /^[A-Z]{1,4}-\d{1,5}$/;
+const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 function json(obj, status = 200) {
   return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
@@ -180,6 +183,11 @@ async function handlePost(request, env) {
     name = (body.name || '').trim();
   }
   if (!code || !name) return json({ error: 'Falta código o nombre' }, 400);
+  if (!CODE_PATTERN.test(code)) {
+    return json({ error: 'Código de vehículo inválido. Usa el formato de las unidades, ej. GD-156' }, 400);
+  }
+  if (!TIME_PATTERN.test(time)) return json({ error: 'Hora inválida' }, 400);
+  if (obs.length > 200) return json({ error: 'La observación es demasiado larga' }, 400);
 
   const entry = {
     id: crypto.randomUUID(), code, name, time, obs, status: 'fuera', returnTime: null,
@@ -212,12 +220,42 @@ async function handlePut(request, env) {
         const err = new Error('forbidden'); err.forbidden = true; throw err;
       }
       if (!current.history) current.history = [];
-      const isMarkingReturn = body.status !== undefined && body.status !== current.status;
-      const isEditingTime = body.time !== undefined && body.time !== current.time;
-      if (isEditingTime || (isMarkingReturn && current.status === 'regreso')) {
-        current.history.push({ time: current.time, obs: current.obs, status: current.status, returnTime: current.returnTime, changedAt: Date.now() });
-        current.editedAt = Date.now();
+      if (body.time !== undefined && !TIME_PATTERN.test(body.time)) {
+        const err = new Error('Hora inválida'); err.badInput = true; throw err;
       }
+      if (body.returnTime !== undefined && body.returnTime !== null && !TIME_PATTERN.test(body.returnTime)) {
+        const err = new Error('Hora de regreso inválida'); err.badInput = true; throw err;
+      }
+
+      // El historial guarda una linea por cambio REAL (que cambio, de que a que).
+      // Antes guardaba una foto completa del registro y, si llegaban dos peticiones
+      // iguales (doble toque), quedaban dos filas identicas en pantalla.
+      const now = Date.now();
+      const changes = [];
+      if (body.time !== undefined && body.time !== current.time) {
+        changes.push({ changedAt: now, action: 'Hora de salida', from: current.time, to: body.time });
+      }
+      if (body.status !== undefined && body.status !== current.status) {
+        if (body.status === 'regreso') {
+          changes.push({ changedAt: now, action: 'Regreso marcado', from: 'fuera', to: body.returnTime || '—' });
+        } else {
+          changes.push({ changedAt: now, action: 'Regreso deshecho', from: current.returnTime || 'regresó', to: 'fuera' });
+        }
+      } else if (body.returnTime !== undefined && body.returnTime !== current.returnTime && current.returnTime) {
+        changes.push({ changedAt: now, action: 'Hora de regreso', from: current.returnTime, to: body.returnTime });
+      }
+      if (body.obs !== undefined && body.obs !== current.obs) {
+        changes.push({ changedAt: now, action: 'Observación', from: current.obs || '—', to: body.obs || '—' });
+      }
+
+      // Nada cambio realmente: no se escribe nada ni se ensucia el historial.
+      if (changes.length === 0) return { noop: true, value: current };
+
+      // "Regreso marcado" no cuenta como edicion: es parte del flujo normal.
+      const isRealEdit = changes.some(c => c.action !== 'Regreso marcado');
+      for (const c of changes) current.history.push(c);
+      if (isRealEdit) current.editedAt = now;
+
       if (body.time !== undefined) current.time = body.time;
       if (body.obs !== undefined) current.obs = body.obs;
       if (body.status !== undefined) current.status = body.status;
@@ -228,6 +266,7 @@ async function handlePut(request, env) {
     return json({ entry: value });
   } catch (e) {
     if (e.forbidden) return json({ error: 'No autorizado para editar este registro' }, 403);
+    if (e.badInput) return json({ error: e.message }, 400);
     return json({ error: e.message }, 500);
   }
 }
