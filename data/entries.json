@@ -65,13 +65,20 @@
     "name": "Alexander Rossis",
     "time": "11:45",
     "obs": "",
-    "status": "fuera",
-    "returnTime": null,
+    "status": "regreso",
+    "returnTime": "11:46",
     "workerId": "d23c3536-c39b-42d8-8152-8a5e8452a16a",
     "workerUsername": "alexander",
     "createdAt": 1790264760807,
     "editedAt": null,
     "deletedAt": null,
-    "history": []
+    "history": [
+      {
+        "changedAt": 1790264768828,
+        "action": "Regreso marcado",
+        "from": "fuera",
+        "to": "11:46"
+      }
+    ]
   }
 ]
