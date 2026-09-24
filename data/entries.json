@@ -13,5 +13,20 @@
     "editedAt": null,
     "deletedAt": null,
     "history": []
+  },
+  {
+    "id": "907d8752-0246-478a-8dd3-8442075bf5eb",
+    "code": "GD-00",
+    "name": "Alexander Rossis",
+    "time": "20:35",
+    "obs": "",
+    "status": "fuera",
+    "returnTime": null,
+    "workerId": "d23c3536-c39b-42d8-8152-8a5e8452a16a",
+    "workerUsername": "alexander",
+    "createdAt": 1790210187172,
+    "editedAt": null,
+    "deletedAt": null,
+    "history": []
   }
 ]
