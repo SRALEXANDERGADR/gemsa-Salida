@@ -60,52 +60,6 @@
     "history": []
   },
   {
-    "id": "93ec9ce0-4e8e-4eab-8d0f-84fb4231c687",
-    "code": "GD-166",
-    "name": "Alexander Rossis",
-    "time": "11:52",
-    "obs": "",
-    "status": "fuera",
-    "returnTime": null,
-    "workerId": "d23c3536-c39b-42d8-8152-8a5e8452a16a",
-    "workerUsername": "alexander",
-    "createdAt": 1790264760807,
-    "editedAt": 1790264822158,
-    "deletedAt": 1790264884295,
-    "history": [
-      {
-        "changedAt": 1790264768828,
-        "action": "Regreso marcado",
-        "from": "fuera",
-        "to": "11:46"
-      },
-      {
-        "changedAt": 1790264772080,
-        "action": "Regreso deshecho",
-        "from": "11:46",
-        "to": "fuera"
-      },
-      {
-        "changedAt": 1790264778369,
-        "action": "Hora de salida",
-        "from": "11:45",
-        "to": "11:52"
-      },
-      {
-        "changedAt": 1790264780910,
-        "action": "Regreso marcado",
-        "from": "fuera",
-        "to": "11:46"
-      },
-      {
-        "changedAt": 1790264822158,
-        "action": "Regreso deshecho",
-        "from": "11:46",
-        "to": "fuera"
-      }
-    ]
-  },
-  {
     "id": "61f26565-bf4b-4eb9-a34e-b0dadaeff633",
     "code": "GD-67",
     "name": "Alexander Rossis",
