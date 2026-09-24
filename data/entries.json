@@ -1,1 +1,17 @@
-[]
+[
+  {
+    "id": "491df060-a7df-4807-b7ce-dd638dec2507",
+    "code": "GD-00",
+    "name": "Alexander",
+    "time": "04:40",
+    "obs": "",
+    "status": "fuera",
+    "returnTime": null,
+    "workerId": null,
+    "workerUsername": null,
+    "createdAt": 1790210061386,
+    "editedAt": null,
+    "deletedAt": null,
+    "history": []
+  }
+]
