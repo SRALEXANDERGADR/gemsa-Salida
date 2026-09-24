@@ -4,9 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>Control de Salidas — GEMSA</title>
+<meta name="theme-color" content="#14161a">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2314161a'/%3E%3Cpath d='M18 40h28M22 40v-9l5-9h10l5 9v9' fill='none' stroke='%23ea6a2e' stroke-width='4' stroke-linejoin='round'/%3E%3Ccircle cx='24' cy='42' r='4' fill='%23ea6a2e'/%3E%3Ccircle cx='40' cy='42' r='4' fill='%23ea6a2e'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
   :root{
     --bg: #14161a;
@@ -40,7 +42,7 @@
   .clock{font-family:var(--mono); font-size:13px; color:var(--text-dim); font-weight:500; white-space:nowrap;}
 
   .tabs{display:flex; gap:2px; margin-top:14px;}
-  .tab{flex:1; text-align:center; padding:10px 8px; font-size:13px; font-weight:600; color:var(--text-dim);
+  .tab{flex:1; text-align:center; padding:10px 2px; font-size:12.5px; font-weight:600; color:var(--text-dim); white-space:nowrap;
     background:transparent; border:none; border-bottom:2px solid transparent; font-family:inherit;}
   .tab.active{color:var(--accent); border-bottom-color:var(--accent);}
   .tab .n{color:var(--text-faint); font-weight:500;}
@@ -56,6 +58,36 @@
     color:var(--text); border-radius:7px; padding:11px 12px; font-size:16px; font-family:inherit;}
   .field input:focus, .field select:focus{outline:none; border-color:var(--accent);}
   .field.code input{font-family:var(--mono); font-weight:700; letter-spacing:0.02em; text-transform:uppercase;}
+  /* Selector de unidad: se elige de la flota, no se escribe */
+  .field.code select{font-family:var(--mono); font-weight:700; font-size:16px; letter-spacing:0.02em;
+    appearance:none; -webkit-appearance:none; -moz-appearance:none; padding-right:36px;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%238d96a1' stroke-width='1.6'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 14px center;}
+  .field.code select:disabled{opacity:.6;}
+  /* Sin unidad elegida: se lee como instrucción, no como un valor */
+  .field.code select.vacio{font-family:var(--sans); font-weight:400; letter-spacing:0; color:var(--text-faint);}
+  .field.code select option{font-family:var(--sans); color:var(--text); background:var(--panel-raised);}
+  .field-hint{font-size:11.5px; color:var(--text-faint); margin-top:6px;}
+  .field-hint b{color:var(--text-dim); font-weight:600;}
+  .field-hint.aviso{color:#f2a568;}
+
+  /* Flota de unidades */
+  .fleet-row{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:11px 12px;
+    margin-bottom:8px; display:flex; align-items:center; gap:11px;}
+  .fleet-row .code-badge{margin-top:0;}
+  .fleet-row .info{flex:1; min-width:0;}
+  .fleet-row .estado{font-size:12.5px; color:var(--ok); font-weight:600;}
+  .fleet-row .estado.fuera{color:#f2a568;}
+  .fleet-row .desc{font-size:11.5px; color:var(--text-faint); margin-top:2px;}
+  .fleet-row .del{background:transparent; color:var(--text-dim); border:1px solid var(--line); border-radius:7px;
+    width:32px; height:32px; flex-shrink:0; font-size:16px;}
+  .fleet-row .del:active{color:var(--danger); border-color:var(--danger);}
+  .fleet-summary{display:flex; gap:8px; margin-bottom:10px;}
+  .fleet-summary span{flex:1; text-align:center; background:var(--panel); border:1px solid var(--line);
+    border-radius:8px; padding:9px 4px; font-size:11.5px; color:var(--text-faint);}
+  .fleet-summary b{display:block; font-size:18px; color:var(--text); font-family:var(--mono);}
+  .fleet-summary .libres b{color:var(--ok);}
+  .fleet-summary .fuera b{color:#f2a568;}
   .two-col{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
 
   .time-picker{display:flex; align-items:center; gap:6px;}
@@ -66,6 +98,8 @@
   .time-now-btn{background:var(--panel-raised); border:1px solid var(--line); color:var(--text-dim);
     border-radius:7px; padding:0 11px; font-size:15px; flex-shrink:0; min-height:42px;}
   .time-now-btn:active{color:var(--accent); border-color:var(--accent);}
+  /* Hora puesta a mano: el botón se ilumina para recordar que ya no sigue al reloj */
+  .time-now-btn.manual{color:var(--accent); border-color:var(--accent);}
   /* En pantallas angostas la hora ocupa toda la fila para que nunca se recorte */
   @media (max-width:359px){ .two-col{grid-template-columns:1fr;} }
 
@@ -230,6 +264,8 @@
 
   .toast{position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--panel-raised);
     border:1px solid var(--line); color:var(--text); padding:10px 18px; border-radius:8px; font-size:13.5px;
+    width:max-content; max-width:calc(100vw - 32px); text-align:center; line-height:1.4;
+    box-shadow:0 8px 24px rgba(0,0,0,.35);
     z-index:50; opacity:0; pointer-events:none; transition:opacity 0.2s, transform 0.2s;}
   .toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
 
@@ -274,7 +310,7 @@
   <div class="header-top">
     <div>
       <h1>Control de Salidas</h1>
-      <div class="sub"><span class="status-dot"></span>GEMSA · registro compartido · 30 días</div>
+      <div class="sub"><span class="status-dot"></span>GEMSA · registro compartido</div>
     </div>
     <div class="header-right">
       <div class="clock" id="live-clock">--:--</div>
@@ -285,18 +321,20 @@
     <button class="tab active" id="tab-active" data-tab="active">Registros <span class="n" id="count-active"></span></button>
     <button class="tab" id="tab-trash" data-tab="trash">Papelera <span class="n" id="count-trash"></span></button>
     <button class="tab" id="tab-staff" data-tab="staff">Personal <span class="n" id="count-staff"></span></button>
+    <button class="tab" id="tab-fleet" data-tab="fleet">Unidades <span class="n" id="count-fleet"></span></button>
   </div>
 </header>
 
 <main>
   <div class="card" id="form-card">
     <div class="field code">
-      <label for="f-code">Código de vehículo</label>
-      <input id="f-code" type="text" placeholder="Ej. GD-156" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="10">
+      <label for="f-code">Unidad</label>
+      <select id="f-code"><option value="">Cargando unidades…</option></select>
+      <div class="field-hint" id="f-code-hint"></div>
     </div>
     <div class="field">
       <label for="f-name">Trabajador(es)</label>
-      <input id="f-name" type="text" placeholder="Ej. José Manuel Salas y Francisco" autocomplete="off">
+      <input id="f-name" type="text" placeholder="Ej. Juan Pérez y Carlos Díaz" autocomplete="off" maxlength="120">
     </div>
     <div class="two-col">
       <div class="field">
@@ -326,12 +364,12 @@
   <div class="card add-staff-card" id="staff-form-card" style="display:none;">
     <div class="field">
       <label for="s-username">Usuario</label>
-      <input id="s-username" type="text" placeholder="ej. jperez" autocomplete="off" autocapitalize="off">
+      <input id="s-username" type="text" placeholder="ej. cdiaz" autocomplete="off" autocapitalize="off">
     </div>
     <div class="two-col">
       <div class="field">
         <label for="s-name">Nombre completo</label>
-        <input id="s-name" type="text" placeholder="José Pérez">
+        <input id="s-name" type="text" placeholder="Ej. Carlos Díaz">
       </div>
       <div class="field">
         <label for="s-password">Clave</label>
@@ -341,6 +379,20 @@
     <button class="btn-primary" id="btn-add-staff">Agregar personal</button>
   </div>
   <div id="staff-list" style="display:none;"></div>
+
+  <div class="card" id="fleet-form-card" style="display:none;">
+    <div class="field code">
+      <label for="v-codes">Agregar unidades</label>
+      <input id="v-codes" type="text" placeholder="Ej. GD-21, GD-156, G-107" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <div class="field-hint">Puedes poner varias a la vez, separadas por coma o espacio.</div>
+    </div>
+    <div class="field">
+      <label for="v-desc">Descripción (opcional, solo si agregas una)</label>
+      <input id="v-desc" type="text" placeholder="Ej. Camioneta blanca" maxlength="60">
+    </div>
+    <button class="btn-primary" id="btn-add-fleet">Agregar a la flota</button>
+  </div>
+  <div id="fleet-list" style="display:none;"></div>
 </main>
 
 <footer>
@@ -367,8 +419,9 @@
   <main>
     <div class="card">
       <div class="field code">
-        <label for="wf-code">Código de vehículo</label>
-        <input id="wf-code" type="text" placeholder="Ej. GD-156" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="10">
+        <label for="wf-code">Unidad</label>
+        <select id="wf-code"><option value="">Cargando unidades…</option></select>
+        <div class="field-hint" id="wf-code-hint"></div>
       </div>
       <div class="two-col">
         <div class="field">
@@ -420,14 +473,6 @@
 
 <script>
 const RETENTION_DAYS = 30;
-// Formato de las unidades de GEMSA: 1-4 letras, guion, 1-5 numeros (GD-156, G-101, GD-21)
-const CODE_PATTERN = /^[A-Z]{1,4}-\d{1,5}$/;
-function normalizeCode(raw){
-  // Acepta "gd156", "gd 156" o "GD-156" y lo deja siempre como GD-156
-  var v = (raw||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-  var m = v.match(/^([A-Z]{1,4})(\d{1,5})$/);
-  return m ? (m[1] + '-' + m[2]) : (raw||'').trim().toUpperCase();
-}
 let entries = [];
 let trashEntries = [];
 let staff = [];
@@ -466,9 +511,19 @@ function populatePicker(hourId, minId){
   hourSel.innerHTML = Array.from({length:24}, (_,i)=>`<option value="${i}">${pad2(i)}</option>`).join('');
   minSel.innerHTML = Array.from({length:60}, (_,i)=>`<option value="${i}">${pad2(i)}</option>`).join('');
 }
+// La hora del formulario sigue al reloj sola, hasta que la persona la cambie a
+// mano. El botón ⟳ vuelve a engancharla al reloj.
+const horaManual = { f:false, wf:false };
+function marcarHoraManual(form, manual){
+  horaManual[form] = manual;
+  const btn = document.getElementById(form + '-time-now');
+  if(btn) btn.classList.toggle('manual', manual);
+}
 function updateLiveClock(){
   const d = new Date();
   document.getElementById('live-clock').textContent = pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  if(!horaManual.f)  setPickerTo('f-hour','f-minute', d.getHours(), d.getMinutes());
+  if(!horaManual.wf) setPickerTo('wf-hour','wf-minute', d.getHours(), d.getMinutes());
 }
 
 function toast(msg){
@@ -476,7 +531,9 @@ function toast(msg){
   t.textContent = msg;
   t.classList.add('show');
   clearTimeout(toast._h);
-  toast._h = setTimeout(()=>t.classList.remove('show'), 1700);
+  // Tiempo según lo largo del mensaje: los avisos de conflicto se tienen que poder leer
+  const ms = Math.min(6500, Math.max(2000, msg.length * 55));
+  toast._h = setTimeout(()=>t.classList.remove('show'), ms);
 }
 
 function dateKey(ts){ return new Date(ts).toLocaleDateString('es-MX', {day:'2-digit', month:'2-digit', year:'numeric'}); }
@@ -520,7 +577,144 @@ async function loadAdminExtras(){
     if(sRes.ok){ const d = await sRes.json(); staff = (d.users||[]).sort((a,b)=> a.name.localeCompare(b.name)); }
   }catch(e){ console.error(e); }
   render();
+  loadFleet();
 }
+
+// ---------- flota de unidades ----------
+// La lista viene del servidor con quién tiene cada unidad fuera, así el
+// selector solo deja elegir las que están libres.
+let flota = [];
+let flotaCargada = false;
+
+async function loadFleet(){
+  try{
+    const res = await apiFetch('/api/vehicles');
+    if(!res.ok) throw new Error('fetch failed');
+    flota = (await res.json()).vehicles || [];
+    flotaCargada = true;
+  }catch(e){ console.error(e); if(!flotaCargada) toast('No se pudieron cargar las unidades.'); }
+  pintarSelectoresDeUnidad();
+  if(currentRole === 'admin'){
+    document.getElementById('count-fleet').textContent = `(${flota.length})`;
+    if(currentTab === 'fleet') renderFleet();
+  }
+}
+
+function pintarSelectoresDeUnidad(){
+  const libres = flota.filter(v => !v.enUso);
+  const fuera  = flota.filter(v => v.enUso);
+  for (const [selId, hintId] of [['f-code','f-code-hint'], ['wf-code','wf-code-hint']]) {
+    const sel = document.getElementById(selId), hint = document.getElementById(hintId);
+    if(!sel) continue;
+    const previo = sel.value;
+    if(!flotaCargada){ continue; }
+    if(flota.length === 0){
+      sel.innerHTML = '<option value="">Sin unidades registradas</option>';
+      sel.disabled = true;
+      hint.className = 'field-hint aviso';
+      hint.textContent = currentRole === 'admin'
+        ? 'Agrega las unidades en la pestaña Unidades para poder registrar salidas.'
+        : 'El supervisor todavía no ha cargado las unidades.';
+      continue;
+    }
+    sel.disabled = false;
+    let html = `<option value="">${libres.length ? 'Elige la unidad…' : 'No hay unidades libres'}</option>`;
+    if(libres.length){
+      html += '<optgroup label="Disponibles">' +
+        libres.map(v => `<option value="${escapeHtml(v.code)}">${escapeHtml(v.code)}${v.desc ? ' · '+escapeHtml(v.desc) : ''}</option>`).join('') +
+        '</optgroup>';
+    }
+    if(fuera.length){
+      html += '<optgroup label="Fuera ahora">' +
+        fuera.map(v => `<option value="${escapeHtml(v.code)}" disabled>${escapeHtml(v.code)} · ${escapeHtml(v.porQuien||'')} desde ${escapeHtml(v.desde||'')}</option>`).join('') +
+        '</optgroup>';
+    }
+    sel.innerHTML = html;
+    // Conserva la elección si la unidad sigue libre
+    if(previo && libres.some(v => v.code === previo)) sel.value = previo;
+    sel.classList.toggle('vacio', !sel.value);
+    hint.className = 'field-hint';
+    hint.innerHTML = `<b>${libres.length}</b> disponible${libres.length===1?'':'s'} · <b>${fuera.length}</b> fuera`;
+  }
+}
+
+function renderFleet(){
+  const list = document.getElementById('fleet-list');
+  document.getElementById('count-fleet').textContent = `(${flota.length})`;
+  if(flota.length === 0){
+    list.innerHTML = '<div class="empty">No hay unidades en la flota. Agrégalas arriba; puedes poner varias de una vez.</div>';
+    return;
+  }
+  const libres = flota.filter(v => !v.enUso).length;
+  list.innerHTML = `
+    <div class="fleet-summary">
+      <span><b>${flota.length}</b>en total</span>
+      <span class="libres"><b>${libres}</b>disponibles</span>
+      <span class="fuera"><b>${flota.length - libres}</b>fuera</span>
+    </div>` +
+    flota.map(v => `
+    <div class="fleet-row">
+      <div class="code-badge">${escapeHtml(v.code)}</div>
+      <div class="info">
+        <div class="estado ${v.enUso?'fuera':''}">${v.enUso ? `Fuera · ${escapeHtml(v.porQuien||'')} desde ${escapeHtml(v.desde||'')}` : 'Disponible'}</div>
+        ${v.desc ? `<div class="desc">${escapeHtml(v.desc)}</div>` : ''}
+      </div>
+      <button class="del" data-id="${v.id}" data-code="${escapeHtml(v.code)}" data-action="delete-vehicle" title="Quitar de la flota">&times;</button>
+    </div>`).join('');
+  list.querySelectorAll('[data-action="delete-vehicle"]').forEach(btn=>{
+    btn.addEventListener('click', ()=> quitarUnidad(btn.getAttribute('data-id'), btn.getAttribute('data-code')));
+  });
+}
+
+document.getElementById('btn-add-fleet').addEventListener('click', async ()=>{
+  const codesEl = document.getElementById('v-codes'), descEl = document.getElementById('v-desc');
+  const codes = codesEl.value.trim();
+  if(!codes){ toast('Escribe al menos un código.'); codesEl.focus(); return; }
+  const btn = document.getElementById('btn-add-fleet');
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try{
+    const res = await apiFetch('/api/vehicles', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ codes, desc: descEl.value.trim() }) });
+    const d = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(d.error || 'No se pudo agregar.');
+    const partes = [];
+    if(d.agregadas.length) partes.push(`${d.agregadas.length} agregada${d.agregadas.length===1?'':'s'}`);
+    if(d.repetidas.length) partes.push(`${d.repetidas.length} ya estaba${d.repetidas.length===1?'':'n'}`);
+    if(d.invalidas.length) partes.push(`no válido: ${d.invalidas.join(', ')}`);
+    toast(partes.join(' · ') || 'Nada que agregar');
+    // Si hubo códigos mal escritos, se dejan en el campo para corregirlos
+    codesEl.value = d.invalidas.join(' ');
+    if(!d.invalidas.length) descEl.value = '';
+    await loadFleet();
+  }catch(e){ console.error(e); toast(e.message); }
+  btn.disabled = false; btn.textContent = 'Agregar a la flota';
+});
+
+async function quitarUnidad(id, code){
+  if(!confirm(`¿Quitar la unidad ${code} de la flota? Sus registros anteriores se conservan.`)) return;
+  try{
+    const res = await apiFetch('/api/vehicles?id=' + encodeURIComponent(id), { method:'DELETE' });
+    const d = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(d.error || 'No se pudo quitar.');
+    toast(`${code} quitada de la flota`);
+    await loadFleet();
+  }catch(e){ console.error(e); toast(e.message); }
+}
+
+for (const id of ['f-code','wf-code']) {
+  const sel = document.getElementById(id);
+  sel.addEventListener('change', ()=> sel.classList.toggle('vacio', !sel.value));
+}
+
+// Al volver a la app (desde WhatsApp, por ejemplo) la ocupación puede haber
+// cambiado: se refresca para no ofrecer una unidad que ya salió.
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState !== 'visible' || !currentRole) return;
+  updateLiveClock();
+  loadFleet();
+  // El supervisor ve registros de todos: se actualizan al volver, sin recargar.
+  if(currentRole === 'admin' && (currentTab === 'active' || currentTab === 'trash')) loadEntries();
+});
 async function loadTrash(){
   try{
     const res = await apiFetch('/api/entries/trash');
@@ -552,7 +746,8 @@ function showWorkerApp(){
   document.getElementById('gate').style.display = 'none';
   document.getElementById('app').style.display = 'none';
   document.getElementById('worker-app').style.display = 'flex';
-  document.getElementById('worker-greeting').textContent = 'Hola, ' + (workerInfo ? workerInfo.name.split(' ')[0] : '');
+  const nombre = (workerInfo && workerInfo.name) ? workerInfo.name.trim().split(/\s+/)[0] : '';
+  document.getElementById('worker-greeting').textContent = nombre ? 'Hola, ' + nombre : 'Hola';
 }
 
 document.querySelectorAll('[data-gate-tab]').forEach(btn=>{
@@ -591,7 +786,7 @@ document.getElementById('worker-login-btn').addEventListener('click', async ()=>
     localStorage.setItem('cs_worker_token', workerToken);
     localStorage.setItem('cs_worker_info', JSON.stringify(workerInfo));
     localStorage.setItem('cs_role', 'worker');
-    showWorkerApp(); loadEntries();
+    showWorkerApp(); loadEntries(); loadFleet();
   }catch(e){ console.error(e); document.getElementById('worker-login-err').textContent = 'Error de conexión.'; }
   btn.disabled = false;
 });
@@ -599,34 +794,37 @@ document.getElementById('w-password').addEventListener('keydown', (e)=>{ if(e.ke
 
 document.getElementById('admin-logout-btn').addEventListener('click', ()=>{
   localStorage.removeItem('cs_access_code'); localStorage.removeItem('cs_role');
-  accessCode=''; currentRole=null;
-  showGate(null,'admin');
+  location.reload();
 });
 document.getElementById('worker-logout-btn').addEventListener('click', async ()=>{
   try{ await fetch('/api/auth/logout', { method:'POST', headers:{'x-worker-token':workerToken} }); }catch(e){}
   localStorage.removeItem('cs_worker_token'); localStorage.removeItem('cs_worker_info'); localStorage.removeItem('cs_role');
-  workerToken=''; workerInfo=null; currentRole=null;
-  showGate(null,'worker');
+  location.reload();
 });
 
 // ---------- tabs ----------
 document.getElementById('tab-active').addEventListener('click', ()=> switchTab('active'));
 document.getElementById('tab-trash').addEventListener('click', ()=> switchTab('trash'));
 document.getElementById('tab-staff').addEventListener('click', ()=> switchTab('staff'));
+document.getElementById('tab-fleet').addEventListener('click', ()=> switchTab('fleet'));
 function switchTab(tab){
   currentTab = tab;
-  document.getElementById('tab-active').classList.toggle('active', tab==='active');
-  document.getElementById('tab-trash').classList.toggle('active', tab==='trash');
-  document.getElementById('tab-staff').classList.toggle('active', tab==='staff');
+  const esLista = tab==='active' || tab==='trash';
+  for (const t of ['active','trash','staff','fleet']) {
+    document.getElementById('tab-'+t).classList.toggle('active', tab===t);
+  }
   document.getElementById('form-card').style.display = tab==='active' ? 'block' : 'none';
-  document.querySelector('.list-hint').style.display = tab==='staff' ? 'none' : 'inline';
-  document.getElementById('list').style.display = tab==='staff' ? 'none' : 'block';
+  document.querySelector('.list-hint').style.display = esLista ? 'inline' : 'none';
+  document.getElementById('list').style.display = esLista ? 'block' : 'none';
   document.getElementById('staff-form-card').style.display = tab==='staff' ? 'block' : 'none';
   document.getElementById('staff-list').style.display = tab==='staff' ? 'block' : 'none';
-  const titles = { active:'Registros', trash:'Papelera', staff:'Personal' };
+  document.getElementById('fleet-form-card').style.display = tab==='fleet' ? 'block' : 'none';
+  document.getElementById('fleet-list').style.display = tab==='fleet' ? 'block' : 'none';
+  const titles = { active:'Registros', trash:'Papelera', staff:'Personal', fleet:'Flota' };
   document.getElementById('list-title').textContent = titles[tab];
   if(tab==='trash') loadTrash();
   if(tab==='staff') loadStaff();
+  if(tab==='fleet'){ renderFleet(); loadFleet(); }
   render();
   // Sin esto, al cambiar de pestaña se conserva el scroll y el formulario
   // aparece cortado por el encabezado fijo.
@@ -640,6 +838,7 @@ function render(){
   document.getElementById('count-staff').textContent = `(${staff.length})`;
 
   if(currentTab === 'staff'){ renderStaff(); return; }
+  if(currentTab === 'fleet'){ return; }
 
   const list = document.getElementById('list');
   const data = currentTab === 'active' ? entries : trashEntries;
@@ -730,7 +929,7 @@ function renderActiveEntry(e){
         <div class="entry-body">
           <p class="entry-name">${escapeHtml(e.name)}</p>
           <div class="entry-meta">
-            <span>${e.time}</span>
+            <span>${escapeHtml(e.time)}</span>
             <span class="status-pill ${isBack?'regreso':'fuera'}">${isBack?'Regresó':'Fuera'}</span>
             ${isBack ? `<span>· regresó ${escapeHtml(e.returnTime||'')}</span>` : ''}
             <span class="edited-flag" data-id="${e.id}" data-action="toggle-history">${edited ? 'editado' : 'historial'}</span>
@@ -813,7 +1012,7 @@ function renderTrashEntry(e){
         <div class="code-badge">${escapeHtml(e.code)}</div>
         <div class="entry-body">
           <p class="entry-name">${escapeHtml(e.name)}</p>
-          <div class="entry-meta"><span>${e.time}</span></div>
+          <div class="entry-meta"><span>${escapeHtml(e.time)}</span></div>
           <div class="trash-note">Eliminado ${timeOfDay(e.deletedAt)} · se borra para siempre en ${left} día${left===1?'':'s'}</div>
         </div>
       </div>
@@ -881,13 +1080,12 @@ document.getElementById('btn-save').addEventListener('click', async ()=>{
   const codeEl = document.getElementById('f-code');
   const nameEl = document.getElementById('f-name');
   const obsEl = document.getElementById('f-obs');
-  const code = normalizeCode(codeEl.value);
+  const code = codeEl.value;
   const name = nameEl.value.trim();
   const time = timeStrFromPicker('f-hour','f-minute');
   const obs = obsEl.value.trim();
-  if(!code || !name){ toast('Falta el código o el nombre.'); return; }
-  if(!CODE_PATTERN.test(code)){ toast('Código inválido. Usa el formato de las unidades, ej. GD-156'); codeEl.focus(); return; }
-  codeEl.value = code;
+  if(!code){ toast('Elige la unidad que sale.'); codeEl.focus(); return; }
+  if(!name){ toast('Escribe quién sale con la unidad.'); nameEl.focus(); return; }
 
   const btn = document.getElementById('btn-save');
   btn.disabled = true; btn.textContent = 'Guardando...';
@@ -898,16 +1096,19 @@ document.getElementById('btn-save').addEventListener('click', async ()=>{
     entries.unshift(data.entry);
     entries.sort((a,b)=> b.createdAt - a.createdAt);
     render();
-    codeEl.value=''; nameEl.value=''; obsEl.value='';
-    const n = nowHM(); setPickerTo('f-hour','f-minute', n.h, n.m);
-    codeEl.focus();
-    toast('Salida registrada');
+    codeEl.value=''; codeEl.classList.add('vacio'); nameEl.value=''; obsEl.value='';
+    const n = nowHM(); setPickerTo('f-hour','f-minute', n.h, n.m); marcarHoraManual('f', false);
+    toast(`Salida registrada: ${code}`);
   }catch(e){ console.error(e); toast(e.message || 'No se pudo guardar. Intenta de nuevo.'); }
+  // Tanto si salió bien como si alguien la sacó antes, se refresca la ocupación
+  loadFleet();
   btn.disabled = false; btn.textContent = 'Registrar salida';
 });
 
-document.getElementById('f-time-now').addEventListener('click', ()=>{ const n = nowHM(); setPickerTo('f-hour','f-minute', n.h, n.m); });
-document.getElementById('wf-time-now').addEventListener('click', ()=>{ const n = nowHM(); setPickerTo('wf-hour','wf-minute', n.h, n.m); });
+document.getElementById('f-time-now').addEventListener('click', ()=>{ const n = nowHM(); setPickerTo('f-hour','f-minute', n.h, n.m); marcarHoraManual('f', false); });
+document.getElementById('wf-time-now').addEventListener('click', ()=>{ const n = nowHM(); setPickerTo('wf-hour','wf-minute', n.h, n.m); marcarHoraManual('wf', false); });
+for (const id of ['f-hour','f-minute']) document.getElementById(id).addEventListener('change', ()=> marcarHoraManual('f', true));
+for (const id of ['wf-hour','wf-minute']) document.getElementById(id).addEventListener('change', ()=> marcarHoraManual('wf', true));
 
 async function toggleReturn(btn, id, markReturn){
   if(btn.disabled) return; // sin esto, un doble toque manda dos veces el mismo cambio
@@ -919,11 +1120,12 @@ async function toggleReturn(btn, id, markReturn){
       method:'PUT', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ id, status: markReturn?'regreso':'fuera', returnTime: markReturn ? (pad2(new Date().getHours())+':'+pad2(new Date().getMinutes())) : null })
     });
-    if(!res.ok) throw new Error('update failed');
-    const data = await res.json();
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error || 'No se pudo actualizar.');
     Object.assign(entry, data.entry);
     if(currentRole === 'worker') renderWorkerList(); else render();
-  }catch(e){ console.error(e); toast('No se pudo actualizar.'); btn.disabled = false; }
+    loadFleet(); // marcar o deshacer el regreso libera u ocupa la unidad
+  }catch(e){ console.error(e); toast(e.message || 'No se pudo actualizar.'); btn.disabled = false; }
 }
 
 async function saveEditedTime(btn){
@@ -948,24 +1150,29 @@ async function deleteEntry(id){
   if(!confirm('¿Mover este registro a la papelera?')) return;
   try{
     const res = await apiFetch('/api/entries?id=' + encodeURIComponent(id), { method:'DELETE' });
-    if(!res.ok) throw new Error('delete failed');
-  }catch(e){ console.error(e); toast('No se pudo mover a la papelera.'); return; }
+    if(!res.ok){ const d = await res.json().catch(()=>({})); throw new Error(d.error || 'No se pudo mover a la papelera.'); }
+  }catch(e){ console.error(e); toast(e.message); return; }
+  // Se pasa a la papelera también en pantalla, para que su contador suba al momento
+  const quitado = entries.find(e => e.id === id);
   entries = entries.filter(e => e.id !== id);
+  if(quitado){ quitado.deletedAt = Date.now(); trashEntries.unshift(quitado); }
   render();
+  loadFleet(); // si estaba fuera, la unidad queda libre
   toast('Movido a la papelera');
 }
 
 async function restoreEntry(id){
   try{
     const res = await apiFetch('/api/entries/restore', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({id}) });
-    if(!res.ok) throw new Error('restore failed');
-    const data = await res.json();
+    const data = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(data.error || 'No se pudo restaurar.');
     trashEntries = trashEntries.filter(e => e.id !== id);
     entries.unshift(data.entry);
     entries.sort((a,b)=> b.createdAt - a.createdAt);
     render();
+    loadFleet();
     toast('Registro restaurado');
-  }catch(e){ console.error(e); toast('No se pudo restaurar.'); }
+  }catch(e){ console.error(e); toast(e.message); }
 }
 
 async function purgeEntry(id){
@@ -1093,7 +1300,7 @@ async function shareEntry(id){
       <div style="font-size:19px; font-weight:600; margin-top:4px;">${escapeHtml(entry.name)}</div>
       <div style="margin-top:18px; border-top:1px solid #e4e4e4; padding-top:14px; font-size:14px; line-height:1.9;">
         <div><b>Fecha:</b> ${dateStr}</div>
-        <div><b>Salida:</b> ${entry.time}</div>
+        <div><b>Salida:</b> ${escapeHtml(entry.time)}</div>
         <div><b>Estado:</b> ${entry.status==='regreso' ? 'Regresó ('+(entry.returnTime||'')+')' : 'Fuera'}</div>
         ${entry.obs ? `<div><b>Observación:</b> ${escapeHtml(entry.obs)}</div>` : ''}
       </div>
@@ -1178,12 +1385,10 @@ function renderWorkerList(){
 document.getElementById('btn-worker-save').addEventListener('click', async ()=>{
   const codeEl = document.getElementById('wf-code');
   const obsEl = document.getElementById('wf-obs');
-  const code = normalizeCode(codeEl.value);
+  const code = codeEl.value;
   const time = timeStrFromPicker('wf-hour','wf-minute');
   const obs = obsEl.value.trim();
-  if(!code){ toast('Falta el código de vehículo.'); return; }
-  if(!CODE_PATTERN.test(code)){ toast('Código inválido. Usa el formato de las unidades, ej. GD-156'); codeEl.focus(); return; }
-  codeEl.value = code;
+  if(!code){ toast('Elige la unidad que sacas.'); codeEl.focus(); return; }
   const btn = document.getElementById('btn-worker-save');
   btn.disabled = true; btn.textContent = 'Guardando...';
   try{
@@ -1193,10 +1398,11 @@ document.getElementById('btn-worker-save').addEventListener('click', async ()=>{
     entries.unshift(data.entry);
     entries.sort((a,b)=> b.createdAt - a.createdAt);
     renderWorkerList();
-    codeEl.value=''; obsEl.value='';
-    const n = nowHM(); setPickerTo('wf-hour','wf-minute', n.h, n.m);
-    toast('Salida registrada');
+    codeEl.value=''; codeEl.classList.add('vacio'); obsEl.value='';
+    const n = nowHM(); setPickerTo('wf-hour','wf-minute', n.h, n.m); marcarHoraManual('wf', false);
+    toast(`Salida registrada: ${code}`);
   }catch(e){ console.error(e); toast(e.message || 'No se pudo guardar. Intenta de nuevo.'); }
+  loadFleet();
   btn.disabled = false; btn.textContent = 'Registrar salida';
 });
 
@@ -1207,12 +1413,12 @@ const n0 = nowHM();
 setPickerTo('f-hour','f-minute', n0.h, n0.m);
 setPickerTo('wf-hour','wf-minute', n0.h, n0.m);
 updateLiveClock();
-setInterval(updateLiveClock, 15000);
+setInterval(updateLiveClock, 5000); // antes 15 s: el reloj podía ir hasta 15 s atrasado
 
 async function init(){
   if(currentRole === 'worker' && workerToken){
     const res = await fetch('/api/auth/me', { headers:{'x-worker-token':workerToken} });
-    if(res.ok){ showWorkerApp(); loadEntries(); return; }
+    if(res.ok){ showWorkerApp(); loadEntries(); loadFleet(); return; }
     localStorage.removeItem('cs_worker_token'); localStorage.removeItem('cs_worker_info'); localStorage.removeItem('cs_role');
     currentRole = null; workerToken='';
   }

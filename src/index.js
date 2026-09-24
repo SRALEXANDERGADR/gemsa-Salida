@@ -8,7 +8,12 @@
 //   GITHUB_TOKEN  (secreto)  -> Personal Access Token con permiso sobre el repo
 //   GITHUB_REPO   (variable) -> ej. "SRALEXANDERGADR/gemsa-Salida"
 //   ACCESS_CODE   (secreto)  -> clave de supervisor/admin (acceso total)
-// Opcionales: GITHUB_BRANCH, GITHUB_FILE_PATH, GITHUB_USERS_PATH
+// Opcionales: GITHUB_BRANCH, GITHUB_FILE_PATH, GITHUB_USERS_PATH, GITHUB_VEHICLES_PATH
+//
+// Archivos de datos:
+//   data/entries.json  -> registros de salida/regreso
+//   data/users.json    -> cuentas del personal
+//   data/vehicles.json -> flota de unidades (la carga el supervisor)
 //
 // Roles:
 //   admin  -> header x-access-code == ACCESS_CODE. Ve y gestiona todo:
@@ -28,6 +33,19 @@ function json(obj, status = 200) {
 }
 function entriesPath(env) { return env.GITHUB_FILE_PATH || 'data/entries.json'; }
 function usersPath(env) { return env.GITHUB_USERS_PATH || 'data/users.json'; }
+function vehiclesPath(env) { return env.GITHUB_VEHICLES_PATH || 'data/vehicles.json'; }
+
+// ---------- ocupacion de unidades ----------
+// Una unidad esta "fuera" si tiene un registro activo (no en papelera) sin regreso.
+function registroActivoDeUnidad(entries, code, exceptoId) {
+  return entries.find(e => e.code === code && e.status === 'fuera' && !e.deletedAt && e.id !== exceptoId) || null;
+}
+function errorUnidadOcupada(code, activo) {
+  const quien = activo.name || 'otra persona';
+  const err = new Error(`La unidad ${code} ya está fuera: salió con ${quien} a las ${activo.time}. Márcale el regreso antes de volver a sacarla.`);
+  err.conflict = true;
+  return err;
+}
 
 // ---------- utilidades de texto/binario ----------
 function b64EncodeUtf8(str) {
@@ -182,12 +200,22 @@ async function handlePost(request, env) {
   } else {
     name = (body.name || '').trim();
   }
-  if (!code || !name) return json({ error: 'Falta código o nombre' }, 400);
-  if (!CODE_PATTERN.test(code)) {
-    return json({ error: 'Código de vehículo inválido. Usa el formato de las unidades, ej. GD-156' }, 400);
-  }
+  if (!code) return json({ error: 'Elige la unidad que sale' }, 400);
+  if (!name) return json({ error: 'Falta el nombre de quien sale' }, 400);
+  if (name.length > 120) return json({ error: 'El nombre es demasiado largo' }, 400);
   if (!TIME_PATTERN.test(time)) return json({ error: 'Hora inválida' }, 400);
   if (obs.length > 200) return json({ error: 'La observación es demasiado larga' }, 400);
+
+  // Solo se pueden sacar unidades que el supervisor haya dado de alta.
+  let flota;
+  try { flota = (await githubGetJsonFile(env, vehiclesPath(env))).data; }
+  catch (e) { return json({ error: e.message }, 500); }
+  if (flota.length === 0) {
+    return json({ error: 'Todavía no hay unidades registradas. El supervisor debe agregarlas en la pestaña Unidades.' }, 400);
+  }
+  if (!flota.some(v => v.code === code)) {
+    return json({ error: `La unidad ${code} no está en la flota. Pide al supervisor que la agregue.` }, 400);
+  }
 
   const entry = {
     id: crypto.randomUUID(), code, name, time, obs, status: 'fuera', returnTime: null,
@@ -199,11 +227,19 @@ async function handlePost(request, env) {
   try {
     await withRetryFile(env, entriesPath(env), entries => {
       const cleaned = purgeExpired(entries);
+      // Se comprueba DENTRO del reintento: si dos personas eligen la misma unidad
+      // a la vez, GitHub rechaza la segunda escritura (sha viejo), se vuelve a leer
+      // el archivo ya con la primera salida y esta comprobacion la detiene.
+      const activo = registroActivoDeUnidad(cleaned, code, null);
+      if (activo) throw errorUnidadOcupada(code, activo);
       cleaned.push(entry);
       return { data: cleaned, value: entry };
     }, `Registrar salida: ${code} - ${name}`);
     return json({ entry });
-  } catch (e) { return json({ error: e.message }, 500); }
+  } catch (e) {
+    if (e.conflict) return json({ error: e.message }, 409);
+    return json({ error: e.message }, 500);
+  }
 }
 
 async function handlePut(request, env) {
@@ -228,6 +264,19 @@ async function handlePut(request, env) {
       if (body.returnTime !== undefined && body.returnTime !== null && !TIME_PATTERN.test(body.returnTime)) {
         const err = new Error('Hora de regreso inválida'); err.badInput = true; throw err;
       }
+      if (body.status !== undefined && body.status !== 'fuera' && body.status !== 'regreso') {
+        const err = new Error('Estado inválido'); err.badInput = true; throw err;
+      }
+      // Deshacer un regreso vuelve a poner la unidad "fuera". Si mientras tanto otra
+      // persona ya la saco, quedarian dos salidas abiertas de la misma unidad.
+      if (body.status === 'fuera' && current.status !== 'fuera' && !current.deletedAt) {
+        const activo = registroActivoDeUnidad(entries, current.code, current.id);
+        if (activo) {
+          const err = new Error(`No se puede deshacer el regreso: la unidad ${current.code} ya volvió a salir con ${activo.name} a las ${activo.time}.`);
+          err.conflict = true; throw err;
+        }
+      }
+      if (body.status === 'fuera') body.returnTime = null; // si esta fuera, no tiene hora de regreso
 
       // El historial guarda una linea por cambio REAL (que cambio, de que a que).
       // Antes guardaba una foto completa del registro y, si llegaban dos peticiones
@@ -270,6 +319,7 @@ async function handlePut(request, env) {
   } catch (e) {
     if (e.forbidden) return json({ error: 'No autorizado para editar este registro' }, 403);
     if (e.badInput) return json({ error: e.message }, 400);
+    if (e.conflict) return json({ error: e.message }, 409);
     return json({ error: e.message }, 500);
   }
 }
@@ -303,12 +353,24 @@ async function handleRestore(request, env) {
     const value = await withRetryFile(env, entriesPath(env), entries => {
       const idx = entries.findIndex(e => e.id === id);
       if (idx === -1) return { noop: true, value: null };
-      entries[idx].deletedAt = null;
-      return { data: entries, value: entries[idx] };
+      const reg = entries[idx];
+      // Restaurar una salida sin regreso reabre la unidad; no puede chocar con otra.
+      if (reg.status === 'fuera') {
+        const activo = registroActivoDeUnidad(entries, reg.code, reg.id);
+        if (activo) {
+          const err = new Error(`No se puede restaurar: la unidad ${reg.code} está fuera con ${activo.name} desde las ${activo.time}.`);
+          err.conflict = true; throw err;
+        }
+      }
+      reg.deletedAt = null;
+      return { data: entries, value: reg };
     }, `Restaurar de papelera: ${id}`);
     if (!value) return json({ error: 'Registro no encontrado' }, 404);
     return json({ entry: value });
-  } catch (e) { return json({ error: e.message }, 500); }
+  } catch (e) {
+    if (e.conflict) return json({ error: e.message }, 409);
+    return json({ error: e.message }, 500);
+  }
 }
 
 async function handlePurge(request, env) {
@@ -416,6 +478,94 @@ async function handleDeleteUser(request, env) {
   } catch (e) { return json({ error: e.message }, 500); }
 }
 
+// ---------- handlers: flota de unidades ----------
+function ordenarUnidades(a, b) {
+  return a.code.localeCompare(b.code, 'es', { numeric: true });
+}
+
+// Todo el mundo con sesion ve la flota y cual unidad esta fuera (y con quien),
+// para poder elegir una libre. Solo el supervisor la modifica.
+async function handleListVehicles(request, env) {
+  const auth = await checkAuth(request, env);
+  if (!auth.ok) return json({ error: 'unauthorized' }, 401);
+  try {
+    const [{ data: flota }, { data: entries }] = await Promise.all([
+      githubGetJsonFile(env, vehiclesPath(env)),
+      githubGetJsonFile(env, entriesPath(env))
+    ]);
+    const vehicles = flota.slice().sort(ordenarUnidades).map(v => {
+      const activo = registroActivoDeUnidad(entries, v.code, null);
+      return {
+        id: v.id, code: v.code, desc: v.desc || '', createdAt: v.createdAt,
+        enUso: !!activo,
+        porQuien: activo ? activo.name : null,
+        desde: activo ? activo.time : null
+      };
+    });
+    return json({ vehicles });
+  } catch (e) { return json({ error: e.message }, 500); }
+}
+
+// Acepta una o varias unidades de golpe ("GD-21, GD-156 G-107"), para no tener
+// que cargar la flota una por una.
+async function handleAddVehicles(request, env) {
+  const auth = await checkAuth(request, env);
+  if (!auth.ok || auth.role !== 'admin') return json({ error: 'unauthorized' }, 401);
+  let body;
+  try { body = await request.json(); } catch (e) { return json({ error: 'JSON inválido' }, 400); }
+  const desc = (body.desc || '').trim().slice(0, 60);
+  const crudos = String(body.codes || '').toUpperCase().split(/[\s,;]+/).filter(Boolean);
+  if (crudos.length === 0) return json({ error: 'Escribe al menos un código' }, 400);
+  if (crudos.length > 100) return json({ error: 'Máximo 100 unidades por vez' }, 400);
+
+  const validos = [], invalidos = [];
+  for (const c of crudos) {
+    // Acepta "gd156" o "GD-156" y lo deja siempre como GD-156
+    const m = c.replace(/[^A-Z0-9]/g, '').match(/^([A-Z]{1,4})(\d{1,5})$/);
+    const code = m ? `${m[1]}-${m[2]}` : c;
+    if (CODE_PATTERN.test(code)) { if (!validos.includes(code)) validos.push(code); }
+    else invalidos.push(c);
+  }
+  try {
+    const result = await withRetryFile(env, vehiclesPath(env), flota => {
+      const existentes = new Set(flota.map(v => v.code));
+      const nuevos = validos.filter(c => !existentes.has(c));
+      const repetidos = validos.filter(c => existentes.has(c));
+      if (nuevos.length === 0) return { noop: true, value: { agregadas: [], repetidas: repetidos } };
+      const now = Date.now();
+      for (const code of nuevos) flota.push({ id: crypto.randomUUID(), code, desc: nuevos.length === 1 ? desc : '', createdAt: now });
+      return { data: flota, value: { agregadas: nuevos, repetidas: repetidos } };
+    }, validos.length === 1 ? `Agregar unidad: ${validos[0]}` : `Agregar ${validos.length} unidades`);
+    return json({ ...result, invalidas: invalidos });
+  } catch (e) { return json({ error: e.message }, 500); }
+}
+
+async function handleDeleteVehicle(request, env) {
+  const auth = await checkAuth(request, env);
+  if (!auth.ok || auth.role !== 'admin') return json({ error: 'unauthorized' }, 401);
+  const id = new URL(request.url).searchParams.get('id');
+  if (!id) return json({ error: 'Falta id' }, 400);
+  try {
+    const { data: entries } = await githubGetJsonFile(env, entriesPath(env));
+    const value = await withRetryFile(env, vehiclesPath(env), flota => {
+      const v = flota.find(x => x.id === id);
+      if (!v) return { noop: true, value: null };
+      const activo = registroActivoDeUnidad(entries, v.code, null);
+      if (activo) {
+        const err = new Error(`La unidad ${v.code} está fuera con ${activo.name}. Márcale el regreso antes de quitarla.`);
+        err.conflict = true; throw err;
+      }
+      // Los registros viejos de esta unidad se quedan como estan: solo sale de la lista.
+      return { data: flota.filter(x => x.id !== id), value: v };
+    }, `Quitar unidad: ${id}`);
+    if (!value) return json({ error: 'Unidad no encontrada' }, 404);
+    return json({ ok: true });
+  } catch (e) {
+    if (e.conflict) return json({ error: e.message }, 409);
+    return json({ error: e.message }, 500);
+  }
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -428,6 +578,10 @@ export default {
     if (url.pathname === '/api/users' && method === 'GET') return handleListUsers(request, env);
     if (url.pathname === '/api/users' && method === 'POST') return handleCreateUser(request, env);
     if (url.pathname === '/api/users' && method === 'DELETE') return handleDeleteUser(request, env);
+
+    if (url.pathname === '/api/vehicles' && method === 'GET') return handleListVehicles(request, env);
+    if (url.pathname === '/api/vehicles' && method === 'POST') return handleAddVehicles(request, env);
+    if (url.pathname === '/api/vehicles' && method === 'DELETE') return handleDeleteVehicle(request, env);
 
     if (url.pathname === '/api/entries/trash' && method === 'GET') return handleGetTrash(request, env);
     if (url.pathname === '/api/entries/restore' && method === 'POST') return handleRestore(request, env);

@@ -1,13 +1,23 @@
 {
-  // Variables/secretos requeridos en Cloudflare (Settings → Variables and secrets):
-  //   GITHUB_TOKEN    (secreto)  Personal Access Token con permiso sobre el repo
-  //   GITHUB_REPO     (variable) ej. "SRALEXANDERGADR/gemsa-Salida"
-  //   SESSION_SECRET  (secreto)  cualquier cadena larga y aleatoria (firma las sesiones)
+  // Variables y secretos en Cloudflare (Configuración → Variables y secretos):
+  //   GITHUB_TOKEN  (secreto)  Token de GitHub con permiso de lectura/escritura sobre el repo
+  //   GITHUB_REPO   (secreto o variable)  "SRALEXANDERGADR/gemsa-Salida"
+  //   ACCESS_CODE   (secreto)  Clave de acceso del supervisor
+  //
+  // Los datos viven en la carpeta data/ del repo. En Cloudflare, "Rutas de
+  // vigilancia de compilación" debe excluir data/** para que cada registro
+  // no dispare una compilación.
   "name": "gemsa-salida",
   "compatibility_date": "2024-11-01",
   "main": "src/index.js",
   "assets": {
     "directory": "./public",
     "binding": "ASSETS"
+  },
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true
+    }
   }
 }
