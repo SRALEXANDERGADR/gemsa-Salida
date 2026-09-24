@@ -5,7 +5,7 @@
     "name": "Alexander Rossis",
     "hash": "4038fe6fcc6dc19bc161df3bd1b0086013c22a8e571af303e079d26b155a9200",
     "salt": "f5401bf05778ba07b3d9470d5bfca86a",
-    "tokenHash": "224682f4e955993dbdf7649013776d51ec9e6732026ebfca0ba7759abd7bef99",
+    "tokenHash": null,
     "createdAt": 1790210138906
   }
 ]
