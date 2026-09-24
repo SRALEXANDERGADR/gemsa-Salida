@@ -35,6 +35,16 @@ function entriesPath(env) { return env.GITHUB_FILE_PATH || 'data/entries.json'; 
 function usersPath(env) { return env.GITHUB_USERS_PATH || 'data/users.json'; }
 function vehiclesPath(env) { return env.GITHUB_VEHICLES_PATH || 'data/vehicles.json'; }
 
+// ---------- horas en los mensajes ----------
+// Se guardan en 24 h ("16:20"); en los mensajes se dicen en 12 h, como la gente las lee.
+function hora12(t) {
+  if (!t || !/^\d{1,2}:\d{2}$/.test(String(t))) return t || '';
+  const [h, m] = String(t).split(':').map(Number);
+  return `${(h % 12) || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+}
+// "a la 1:05 PM" / "a las 4:20 PM"
+function laHora(t) { const h = hora12(t); return (/^1:/.test(h) ? 'la ' : 'las ') + h; }
+
 // ---------- ocupacion de unidades ----------
 // Una unidad esta "fuera" si tiene un registro activo (no en papelera) sin regreso.
 function registroActivoDeUnidad(entries, code, exceptoId) {
@@ -42,7 +52,7 @@ function registroActivoDeUnidad(entries, code, exceptoId) {
 }
 function errorUnidadOcupada(code, activo) {
   const quien = activo.name || 'otra persona';
-  const err = new Error(`La unidad ${code} ya está fuera: salió con ${quien} a las ${activo.time}. Márcale el regreso antes de volver a sacarla.`);
+  const err = new Error(`La unidad ${code} ya está fuera: salió con ${quien} a ${laHora(activo.time)}. Márcale el regreso antes de volver a sacarla.`);
   err.conflict = true;
   return err;
 }
@@ -272,7 +282,7 @@ async function handlePut(request, env) {
       if (body.status === 'fuera' && current.status !== 'fuera' && !current.deletedAt) {
         const activo = registroActivoDeUnidad(entries, current.code, current.id);
         if (activo) {
-          const err = new Error(`No se puede deshacer el regreso: la unidad ${current.code} ya volvió a salir con ${activo.name} a las ${activo.time}.`);
+          const err = new Error(`No se puede deshacer el regreso: la unidad ${current.code} ya volvió a salir con ${activo.name} a ${laHora(activo.time)}.`);
           err.conflict = true; throw err;
         }
       }
@@ -358,7 +368,7 @@ async function handleRestore(request, env) {
       if (reg.status === 'fuera') {
         const activo = registroActivoDeUnidad(entries, reg.code, reg.id);
         if (activo) {
-          const err = new Error(`No se puede restaurar: la unidad ${reg.code} está fuera con ${activo.name} desde las ${activo.time}.`);
+          const err = new Error(`No se puede restaurar: la unidad ${reg.code} está fuera con ${activo.name} desde ${laHora(activo.time)}.`);
           err.conflict = true; throw err;
         }
       }

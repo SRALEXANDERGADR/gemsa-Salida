@@ -95,6 +95,13 @@
     text-align:center; text-align-last:center; padding:11px 6px; flex:1 1 0; min-width:0;
     appearance:none; -webkit-appearance:none; -moz-appearance:none; background-image:none;}
   .time-picker .colon{color:var(--text-dim); font-weight:700; flex-shrink:0;}
+  /* AM / PM: dos botones, un solo toque para cambiar */
+  .ampm{display:flex; flex-shrink:0; border:1px solid var(--line); border-radius:7px; overflow:hidden;
+    background:var(--panel-raised);}
+  .ampm button{background:transparent; color:var(--text-dim); font-weight:700; font-size:13.5px;
+    padding:0 11px; min-height:44px; border:none; font-family:inherit; letter-spacing:.02em;}
+  .ampm button + button{border-left:1px solid var(--line);}
+  .ampm button.on{background:var(--accent); color:var(--accent-ink);}
   .time-now-btn{background:var(--panel-raised); border:1px solid var(--line); color:var(--text-dim);
     border-radius:7px; padding:0 11px; font-size:15px; flex-shrink:0; min-height:42px;}
   .time-now-btn:active{color:var(--accent); border-color:var(--accent);}
@@ -175,6 +182,7 @@
     border-radius:7px; padding:9px 6px; flex:1 1 0; min-width:0;
     appearance:none; -webkit-appearance:none; -moz-appearance:none;}
   .edit-time-row .colon{color:var(--text-dim); font-weight:700; flex-shrink:0;}
+  .edit-time-row .ampm button{min-height:38px; padding:0 9px; font-size:12.5px;}
   .save-time-btn{background:var(--accent); color:var(--accent-ink); border-radius:6px; padding:9px 13px;
     font-size:12px; font-weight:700; flex-shrink:0;}
 
@@ -329,27 +337,26 @@
   <div class="card" id="form-card">
     <div class="field code">
       <label for="f-code">Unidad</label>
-      <select id="f-code"><option value="">Cargando unidades…</option></select>
+      <select id="f-code" class="vacio"><option value="">Cargando unidades…</option></select>
       <div class="field-hint" id="f-code-hint"></div>
     </div>
     <div class="field">
       <label for="f-name">Trabajador(es)</label>
       <input id="f-name" type="text" placeholder="Ej. Juan Pérez y Carlos Díaz" autocomplete="off" maxlength="120">
     </div>
-    <div class="two-col">
-      <div class="field">
-        <label>Hora de salida</label>
-        <div class="time-picker">
-          <select id="f-hour"></select>
-          <span class="colon">:</span>
-          <select id="f-minute"></select>
-          <button type="button" class="time-now-btn" id="f-time-now" title="Usar hora actual">⟳</button>
-        </div>
+    <div class="field">
+      <label>Hora de salida</label>
+      <div class="time-picker">
+        <select id="f-hour" aria-label="Hora"></select>
+        <span class="colon">:</span>
+        <select id="f-minute" aria-label="Minutos"></select>
+        <div class="ampm" id="f-ampm" data-v="am"><button type="button" data-v="am" class="on">AM</button><button type="button" data-v="pm">PM</button></div>
+        <button type="button" class="time-now-btn" id="f-time-now" title="Usar hora actual">⟳</button>
       </div>
-      <div class="field">
-        <label for="f-obs">Observación</label>
-        <input id="f-obs" type="text" placeholder="Motivo, destino...">
-      </div>
+    </div>
+    <div class="field">
+      <label for="f-obs">Observación (opcional)</label>
+      <input id="f-obs" type="text" placeholder="Motivo, destino…" maxlength="200">
     </div>
     <button class="btn-primary" id="btn-save">Registrar salida</button>
   </div>
@@ -420,23 +427,22 @@
     <div class="card">
       <div class="field code">
         <label for="wf-code">Unidad</label>
-        <select id="wf-code"><option value="">Cargando unidades…</option></select>
+        <select id="wf-code" class="vacio"><option value="">Cargando unidades…</option></select>
         <div class="field-hint" id="wf-code-hint"></div>
       </div>
-      <div class="two-col">
-        <div class="field">
-          <label>Hora de salida</label>
-          <div class="time-picker">
-            <select id="wf-hour"></select>
-            <span class="colon">:</span>
-            <select id="wf-minute"></select>
-            <button type="button" class="time-now-btn" id="wf-time-now" title="Usar hora actual">⟳</button>
-          </div>
+      <div class="field">
+        <label>Hora de salida</label>
+        <div class="time-picker">
+          <select id="wf-hour" aria-label="Hora"></select>
+          <span class="colon">:</span>
+          <select id="wf-minute" aria-label="Minutos"></select>
+          <div class="ampm" id="wf-ampm" data-v="am"><button type="button" data-v="am" class="on">AM</button><button type="button" data-v="pm">PM</button></div>
+          <button type="button" class="time-now-btn" id="wf-time-now" title="Usar hora actual">⟳</button>
         </div>
-        <div class="field">
-          <label for="wf-obs">Observación</label>
-          <input id="wf-obs" type="text" placeholder="Motivo, destino...">
-        </div>
+      </div>
+      <div class="field">
+        <label for="wf-obs">Observación (opcional)</label>
+        <input id="wf-obs" type="text" placeholder="Motivo, destino…" maxlength="200">
       </div>
       <button class="btn-primary" id="btn-worker-save">Registrar salida</button>
     </div>
@@ -493,23 +499,56 @@ function apiFetch(url, options={}){
 
 function pad2(n){ return String(n).padStart(2,'0'); }
 function nowHM(){ const d = new Date(); return { h: d.getHours(), m: d.getMinutes() }; }
-function timeStrFromPicker(hourId='f-hour', minId='f-minute'){
-  return pad2(document.getElementById(hourId).value) + ':' + pad2(document.getElementById(minId).value);
+// ---------- hora en formato de 12 horas ----------
+// Por dentro todo se guarda en 24 h ("16:20"): sin ambigüedad y se ordena bien.
+// En pantalla se muestra y se elige en 12 h con AM/PM, que es lo que todos entienden.
+function hora12(t){                                  // "16:20" -> "4:20 PM"
+  if(!t || !/^\d{1,2}:\d{2}$/.test(String(t))) return t || '';
+  const [h, m] = String(t).split(':').map(Number);
+  return `${(h % 12) || 12}:${pad2(m)} ${h < 12 ? 'AM' : 'PM'}`;
 }
-function setPickerTo(hourId, minId, h, m){
-  document.getElementById(hourId).value = h;
-  document.getElementById(minId).value = m;
+function articuloHora(t){                            // "a la 1:05 PM" / "a las 4:20 PM"
+  return /^1:/.test(hora12(t)) ? 'la' : 'las';
 }
-function timeOptionsHtml(selected, max){
-  var out = '';
-  for(var i=0;i<max;i++){ out += '<option value="'+i+'"'+(pad2(i)===pad2(selected)?' selected':'')+'>'+pad2(i)+'</option>'; }
-  return out;
+// El grupo AM/PM de cada selector: f-hour -> f-ampm, eh-<id> -> ea-<id>
+function apIdDe(hourId){ return /-hour$/.test(hourId) ? hourId.replace(/-hour$/, '-ampm') : hourId.replace(/^eh-/, 'ea-'); }
+function setAmpm(id, v){
+  const el = document.getElementById(id); if(!el) return;
+  el.dataset.v = v;
+  el.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
 }
+function ampmHtml(id, v){
+  return `<div class="ampm" id="${id}" data-v="${v}"><button type="button" data-v="am" class="${v==='am'?'on':''}">AM</button><button type="button" data-v="pm" class="${v==='pm'?'on':''}">PM</button></div>`;
+}
+function timeStrFromPicker(hourId, minId){
+  let h = parseInt(document.getElementById(hourId).value, 10);   // 1..12
+  const m = parseInt(document.getElementById(minId).value, 10);
+  const ap = document.getElementById(apIdDe(hourId)).dataset.v;
+  if(ap === 'am' && h === 12) h = 0;                              // 12 AM = medianoche
+  else if(ap === 'pm' && h !== 12) h += 12;                       // 12 PM = mediodía
+  return pad2(h) + ':' + pad2(m);
+}
+function setPickerTo(hourId, minId, h, m){                        // h en 24 h
+  h = Number(h);
+  document.getElementById(hourId).value = String((h % 12) || 12);
+  document.getElementById(minId).value = String(Number(m));
+  setAmpm(apIdDe(hourId), h < 12 ? 'am' : 'pm');
+}
+function opcionesHora12(sel){ let o=''; for(let i=1;i<=12;i++) o += `<option value="${i}"${i===sel?' selected':''}>${i}</option>`; return o; }
+function opcionesMinuto(sel){ let o=''; for(let i=0;i<60;i++) o += `<option value="${i}"${i===sel?' selected':''}>${pad2(i)}</option>`; return o; }
+// Un toque en AM o PM lo cambia, y avisa como si fuera un select
+document.addEventListener('click', ev => {
+  const b = ev.target.closest('.ampm button'); if(!b) return;
+  const grupo = b.parentElement;
+  if(grupo.dataset.v === b.dataset.v) return;
+  setAmpm(grupo.id, b.dataset.v);
+  grupo.dispatchEvent(new Event('change'));
+});
 function populatePicker(hourId, minId){
   const hourSel = document.getElementById(hourId);
   const minSel = document.getElementById(minId);
-  hourSel.innerHTML = Array.from({length:24}, (_,i)=>`<option value="${i}">${pad2(i)}</option>`).join('');
-  minSel.innerHTML = Array.from({length:60}, (_,i)=>`<option value="${i}">${pad2(i)}</option>`).join('');
+  hourSel.innerHTML = opcionesHora12(12);
+  minSel.innerHTML = opcionesMinuto(0);
 }
 // La hora del formulario sigue al reloj sola, hasta que la persona la cambie a
 // mano. El botón ⟳ vuelve a engancharla al reloj.
@@ -521,7 +560,7 @@ function marcarHoraManual(form, manual){
 }
 function updateLiveClock(){
   const d = new Date();
-  document.getElementById('live-clock').textContent = pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  document.getElementById('live-clock').textContent = hora12(pad2(d.getHours()) + ':' + pad2(d.getMinutes()));
   if(!horaManual.f)  setPickerTo('f-hour','f-minute', d.getHours(), d.getMinutes());
   if(!horaManual.wf) setPickerTo('wf-hour','wf-minute', d.getHours(), d.getMinutes());
 }
@@ -545,7 +584,7 @@ function dateLabel(ts){
   const dia = d.toLocaleDateString('es-DO', {weekday:'long'});
   return dia.charAt(0).toUpperCase() + dia.slice(1) + ' · ' + dateKey(ts);
 }
-function timeOfDay(ts){ const d = new Date(ts); return pad2(d.getHours())+':'+pad2(d.getMinutes()); }
+function timeOfDay(ts){ const d = new Date(ts); return hora12(pad2(d.getHours())+':'+pad2(d.getMinutes())); }
 function daysLeft(ts){
   const elapsedMs = Date.now() - ts;
   const leftMs = (RETENTION_DAYS*24*60*60*1000) - elapsedMs;
@@ -611,6 +650,7 @@ function pintarSelectoresDeUnidad(){
     if(flota.length === 0){
       sel.innerHTML = '<option value="">Sin unidades registradas</option>';
       sel.disabled = true;
+      sel.classList.add('vacio');
       hint.className = 'field-hint aviso';
       hint.textContent = currentRole === 'admin'
         ? 'Agrega las unidades en la pestaña Unidades para poder registrar salidas.'
@@ -626,7 +666,7 @@ function pintarSelectoresDeUnidad(){
     }
     if(fuera.length){
       html += '<optgroup label="Fuera ahora">' +
-        fuera.map(v => `<option value="${escapeHtml(v.code)}" disabled>${escapeHtml(v.code)} · ${escapeHtml(v.porQuien||'')} desde ${escapeHtml(v.desde||'')}</option>`).join('') +
+        fuera.map(v => `<option value="${escapeHtml(v.code)}" disabled>${escapeHtml(v.code)} · ${escapeHtml(v.porQuien||'')} desde ${escapeHtml(hora12(v.desde))}</option>`).join('') +
         '</optgroup>';
     }
     sel.innerHTML = html;
@@ -656,7 +696,7 @@ function renderFleet(){
     <div class="fleet-row">
       <div class="code-badge">${escapeHtml(v.code)}</div>
       <div class="info">
-        <div class="estado ${v.enUso?'fuera':''}">${v.enUso ? `Fuera · ${escapeHtml(v.porQuien||'')} desde ${escapeHtml(v.desde||'')}` : 'Disponible'}</div>
+        <div class="estado ${v.enUso?'fuera':''}">${v.enUso ? `Fuera · ${escapeHtml(v.porQuien||'')} desde ${articuloHora(v.desde)} ${escapeHtml(hora12(v.desde))}` : 'Disponible'}</div>
         ${v.desc ? `<div class="desc">${escapeHtml(v.desc)}</div>` : ''}
       </div>
       <button class="del" data-id="${v.id}" data-code="${escapeHtml(v.code)}" data-action="delete-vehicle" title="Quitar de la flota">&times;</button>
@@ -921,7 +961,8 @@ function construirBloques(data, esPapelera){
 
 function renderActiveEntry(e){
   const isBack = e.status === 'regreso';
-  const edited = !!e.editedAt;  // solo cuenta como editado si se corrigió algo, no al marcar regreso
+  const edited = !!e.editedAt;
+  const [hh, mm] = String(e.time || '00:00').split(':').map(Number);  // solo cuenta como editado si se corrigió algo, no al marcar regreso
   return `
     <div class="entry" data-id="${e.id}">
       <div class="entry-top">
@@ -929,9 +970,9 @@ function renderActiveEntry(e){
         <div class="entry-body">
           <p class="entry-name">${escapeHtml(e.name)}</p>
           <div class="entry-meta">
-            <span>${escapeHtml(e.time)}</span>
+            <span>${escapeHtml(hora12(e.time))}</span>
             <span class="status-pill ${isBack?'regreso':'fuera'}">${isBack?'Regresó':'Fuera'}</span>
-            ${isBack ? `<span>· regresó ${escapeHtml(e.returnTime||'')}</span>` : ''}
+            ${isBack ? `<span>· regresó ${escapeHtml(hora12(e.returnTime))}</span>` : ''}
             <span class="edited-flag" data-id="${e.id}" data-action="toggle-history">${edited ? 'editado' : 'historial'}</span>
           </div>
           ${e.obs ? `<div class="entry-obs">${escapeHtml(e.obs)}</div>` : ''}
@@ -948,9 +989,10 @@ function renderActiveEntry(e){
         <button class="edit-time-btn" data-id="${e.id}" data-action="toggle-edit-time">Editar hora</button>
       </div>
       <div class="edit-time-row" id="edit-time-${e.id}">
-        <select id="eh-${e.id}">${timeOptionsHtml((e.time||'00:00').split(':')[0], 24)}</select>
+        <select id="eh-${e.id}" aria-label="Hora">${opcionesHora12((hh % 12) || 12)}</select>
         <span class="colon">:</span>
-        <select id="em-${e.id}">${timeOptionsHtml((e.time||'00:00').split(':')[1], 60)}</select>
+        <select id="em-${e.id}" aria-label="Minutos">${opcionesMinuto(mm)}</select>
+        ${ampmHtml('ea-'+e.id, hh < 12 ? 'am' : 'pm')}
         <button class="save-time-btn" data-id="${e.id}" data-action="save-time">Guardar</button>
       </div>
       ${renderHistory(e)}
@@ -961,7 +1003,7 @@ function renderActiveEntry(e){
 function cuando(ts){
   const d = new Date(ts), hoy = new Date();
   const ayer = new Date(hoy); ayer.setDate(ayer.getDate()-1);
-  const hm = pad2(d.getHours())+':'+pad2(d.getMinutes());
+  const hm = hora12(pad2(d.getHours())+':'+pad2(d.getMinutes()));
   if(d.toDateString() === hoy.toDateString()) return 'hoy ' + hm;
   if(d.toDateString() === ayer.toDateString()) return 'ayer ' + hm;
   return pad2(d.getDate())+'/'+pad2(d.getMonth()+1)+' · '+hm;
@@ -970,16 +1012,18 @@ function cuando(ts){
 // Cada cambio contado como una frase, no como un volcado de datos.
 function fraseDelCambio(h){
   const b = v => '<b>'+escapeHtml(String(v))+'</b>';
+  const t = v => b(hora12(v));                               // hora, en 12 h
+  const aLas = v => `a ${articuloHora(v)} ${t(v)}`;          // "a la 1:05 PM" / "a las 4:20 PM"
   switch(h.type){
-    case 'salida':            return `Corrigió la hora de salida: de ${b(h.from)} a ${b(h.to)}`;
-    case 'regreso_marcado':   return h.to ? `Marcó el regreso a las ${b(h.to)}` : 'Marcó el regreso';
-    case 'regreso_deshecho':  return h.from ? `Deshizo el regreso (estaba marcado a las ${b(h.from)})` : 'Deshizo el regreso';
-    case 'regreso_hora':      return `Corrigió la hora de regreso: de ${b(h.from)} a ${b(h.to)}`;
+    case 'salida':            return `Corrigió la hora de salida: de ${t(h.from)} a ${t(h.to)}`;
+    case 'regreso_marcado':   return h.to ? `Marcó el regreso ${aLas(h.to)}` : 'Marcó el regreso';
+    case 'regreso_deshecho':  return h.from ? `Deshizo el regreso (estaba marcado ${aLas(h.from)})` : 'Deshizo el regreso';
+    case 'regreso_hora':      return `Corrigió la hora de regreso: de ${t(h.from)} a ${t(h.to)}`;
     case 'observacion':       return h.to ? `Cambió la observación a "${escapeHtml(h.to)}"` : 'Quitó la observación';
   }
   // Cambios guardados antes de esta versión, que no traen tipo.
-  if(h.action) return `${escapeHtml(h.action)}: de ${b(h.from)} a ${b(h.to)}`;
-  return `Cambió la hora de salida (antes ${b(h.time)})`;
+  if(h.action) return `${escapeHtml(h.action)}: de ${t(h.from)} a ${t(h.to)}`;
+  return `Cambió la hora de salida (antes ${t(h.time)})`;
 }
 
 function renderHistory(e){
@@ -997,7 +1041,7 @@ function renderHistory(e){
 
   const creado = `
     <div class="hist-item creado">
-      <div class="hist-what">Registró la salida a las <b>${escapeHtml(String(horaOriginal||''))}</b></div>
+      <div class="hist-what">Registró la salida a ${articuloHora(horaOriginal)} <b>${escapeHtml(hora12(horaOriginal))}</b></div>
       <div class="hist-who">${e.createdBy ? escapeHtml(e.createdBy) + ' · ' : ''}${cuando(e.createdAt)}</div>
     </div>`;
 
@@ -1012,7 +1056,7 @@ function renderTrashEntry(e){
         <div class="code-badge">${escapeHtml(e.code)}</div>
         <div class="entry-body">
           <p class="entry-name">${escapeHtml(e.name)}</p>
-          <div class="entry-meta"><span>${escapeHtml(e.time)}</span></div>
+          <div class="entry-meta"><span>${escapeHtml(hora12(e.time))}</span></div>
           <div class="trash-note">Eliminado ${timeOfDay(e.deletedAt)} · se borra para siempre en ${left} día${left===1?'':'s'}</div>
         </div>
       </div>
@@ -1107,8 +1151,8 @@ document.getElementById('btn-save').addEventListener('click', async ()=>{
 
 document.getElementById('f-time-now').addEventListener('click', ()=>{ const n = nowHM(); setPickerTo('f-hour','f-minute', n.h, n.m); marcarHoraManual('f', false); });
 document.getElementById('wf-time-now').addEventListener('click', ()=>{ const n = nowHM(); setPickerTo('wf-hour','wf-minute', n.h, n.m); marcarHoraManual('wf', false); });
-for (const id of ['f-hour','f-minute']) document.getElementById(id).addEventListener('change', ()=> marcarHoraManual('f', true));
-for (const id of ['wf-hour','wf-minute']) document.getElementById(id).addEventListener('change', ()=> marcarHoraManual('wf', true));
+for (const id of ['f-hour','f-minute','f-ampm']) document.getElementById(id).addEventListener('change', ()=> marcarHoraManual('f', true));
+for (const id of ['wf-hour','wf-minute','wf-ampm']) document.getElementById(id).addEventListener('change', ()=> marcarHoraManual('wf', true));
 
 async function toggleReturn(btn, id, markReturn){
   if(btn.disabled) return; // sin esto, un doble toque manda dos veces el mismo cambio
@@ -1266,7 +1310,7 @@ async function compartirDia(clave, btn){
       <td style="padding:9px 0; font-family:'JetBrains Mono',monospace; font-weight:700; color:#ea6a2e; white-space:nowrap; vertical-align:top;">${escapeHtml(e.code)}</td>
       <td style="padding:9px 12px; font-size:15px; vertical-align:top;">${escapeHtml(e.name)}</td>
       <td style="padding:9px 0; font-family:'JetBrains Mono',monospace; font-size:13px; color:#6b7480; text-align:right; white-space:nowrap; vertical-align:top;">
-        ${escapeHtml(e.time||'')}${e.status==='regreso' ? ' → '+escapeHtml(e.returnTime||'') : ''}
+        ${escapeHtml(hora12(e.time))}${e.status==='regreso' ? ' → '+escapeHtml(hora12(e.returnTime)) : ''}
       </td>
     </tr>`).join('');
   holder.innerHTML = `
@@ -1300,8 +1344,8 @@ async function shareEntry(id){
       <div style="font-size:19px; font-weight:600; margin-top:4px;">${escapeHtml(entry.name)}</div>
       <div style="margin-top:18px; border-top:1px solid #e4e4e4; padding-top:14px; font-size:14px; line-height:1.9;">
         <div><b>Fecha:</b> ${dateStr}</div>
-        <div><b>Salida:</b> ${escapeHtml(entry.time)}</div>
-        <div><b>Estado:</b> ${entry.status==='regreso' ? 'Regresó ('+(entry.returnTime||'')+')' : 'Fuera'}</div>
+        <div><b>Salida:</b> ${escapeHtml(hora12(entry.time))}</div>
+        <div><b>Estado:</b> ${entry.status==='regreso' ? 'Regresó ('+escapeHtml(hora12(entry.returnTime))+')' : 'Fuera'}</div>
         ${entry.obs ? `<div><b>Observación:</b> ${escapeHtml(entry.obs)}</div>` : ''}
       </div>
       <div style="margin-top:20px; font-size:10.5px; color:#b8bfc7;">Generado por GADR Net</div>
