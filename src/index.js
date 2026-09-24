@@ -130,12 +130,28 @@ async function descifrarClave(env, passEnc) {
 async function githubGetJsonFile(env, path) {
   const branch = env.GITHUB_BRANCH || 'main';
   const url = `${GITHUB_API}/repos/${env.GITHUB_REPO}/contents/${path}?ref=${branch}`;
-  const res = await fetch(url, { headers: { Authorization: `token ${env.GITHUB_TOKEN}`, 'User-Agent': 'control-salidas-worker', Accept: 'application/vnd.github+json' } });
-  if (res.status === 404) return { sha: null, data: [] };
+  const headers = { Authorization: `token ${env.GITHUB_TOKEN}`, 'User-Agent': 'control-salidas-worker', Accept: 'application/vnd.github+json' };
+  const res = await fetch(url, { headers });
+  if (res.status === 404) return { sha: null, data: [] };   // el archivo aún no existe: se crea al primer guardado
   if (!res.ok) throw new Error(`GitHub GET falló: ${res.status}`);
   const resData = await res.json();
-  let data = [];
-  try { data = JSON.parse(b64DecodeUtf8(resData.content)); } catch (e) { data = []; }
+  if (resData.size === 0) return { sha: resData.sha, data: [] };
+
+  // A partir de 1 MB la API de contenidos ya no trae el contenido (encoding "none").
+  // En ese caso se pide el blob por su sha, que admite archivos de hasta 100 MB.
+  let b64 = resData.content;
+  if (!b64 || resData.encoding === 'none') {
+    const blobRes = await fetch(`${GITHUB_API}/repos/${env.GITHUB_REPO}/git/blobs/${resData.sha}`, { headers });
+    if (!blobRes.ok) throw new Error(`GitHub GET (blob) falló: ${blobRes.status}`);
+    b64 = (await blobRes.json()).content;
+  }
+
+  // NUNCA tratar un archivo ilegible como vacío: la siguiente escritura lo
+  // sobrescribiría con un solo registro y se perdería todo el historial.
+  let data;
+  try { data = JSON.parse(b64DecodeUtf8(b64 || '')); }
+  catch (e) { throw new Error(`No se pudo leer ${path}: el archivo está dañado o incompleto. No se guardó nada, para no perder datos.`); }
+  if (!Array.isArray(data)) throw new Error(`${path} no tiene el formato esperado. No se guardó nada, para no perder datos.`);
   return { sha: resData.sha, data };
 }
 async function githubPutJsonFile(env, path, data, sha, message) {
