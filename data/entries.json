@@ -30,21 +30,6 @@
     ]
   },
   {
-    "id": "907d8752-0246-478a-8dd3-8442075bf5eb",
-    "code": "GD-00",
-    "name": "Alexander Rossis",
-    "time": "20:35",
-    "obs": "",
-    "status": "regreso",
-    "returnTime": "20:37",
-    "workerId": "d23c3536-c39b-42d8-8152-8a5e8452a16a",
-    "workerUsername": "alexander",
-    "createdAt": 1790210187172,
-    "editedAt": null,
-    "deletedAt": 1790242844728,
-    "history": []
-  },
-  {
     "id": "673ff0e6-225d-4e13-9688-5036668d890d",
     "code": "GD-67",
     "name": "Ale",
