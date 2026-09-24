@@ -8,6 +8,8 @@
 //   GITHUB_TOKEN  (secreto)  -> Personal Access Token con permiso sobre el repo
 //   GITHUB_REPO   (variable) -> ej. "SRALEXANDERGADR/gemsa-Salida"
 //   ACCESS_CODE   (secreto)  -> clave de supervisor/admin (acceso total)
+//   PASSWORD_KEY  (secreto)  -> llave para cifrar las claves del personal, para que
+//                               el supervisor pueda verlas. Cadena larga y aleatoria.
 // Opcionales: GITHUB_BRANCH, GITHUB_FILE_PATH, GITHUB_USERS_PATH, GITHUB_VEHICLES_PATH
 //
 // Archivos de datos:
@@ -29,7 +31,7 @@ const CODE_PATTERN = /^[A-Z]{1,4}-\d{1,5}$/;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 function json(obj, status = 200) {
-  return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify(obj), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } });
 }
 function entriesPath(env) { return env.GITHUB_FILE_PATH || 'data/entries.json'; }
 function usersPath(env) { return env.GITHUB_USERS_PATH || 'data/users.json'; }
@@ -94,6 +96,35 @@ async function verifyPassword(password, saltHex, hashHex) {
   return (await pbkdf2Hex(password, hexToBytes(saltHex))) === hashHex;
 }
 function generateToken() { return bytesToHex(crypto.getRandomValues(new Uint8Array(32))); }
+
+// ---------- claves consultables por el supervisor ----------
+// Cada clave se guarda dos veces:
+//   hash + salt -> PBKDF2, de una sola via. Es lo que se usa para iniciar sesion.
+//   passEnc     -> AES-GCM con una llave derivada de PASSWORD_KEY (secreto de Cloudflare).
+// El repo solo ve texto cifrado: sin PASSWORD_KEY no se puede leer. Si falta la
+// llave, las cuentas funcionan igual pero su clave no queda consultable.
+async function llaveDeClaves(env) {
+  if (!env.PASSWORD_KEY) return null;
+  const material = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('gemsa-claves-v1:' + env.PASSWORD_KEY));
+  return crypto.subtle.importKey('raw', material, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+}
+async function cifrarClave(env, password) {
+  const llave = await llaveDeClaves(env);
+  if (!llave) return null;
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const cifrado = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, llave, new TextEncoder().encode(password));
+  return 'v1:' + bytesToHex(iv) + ':' + bytesToHex(new Uint8Array(cifrado));
+}
+async function descifrarClave(env, passEnc) {
+  const llave = await llaveDeClaves(env);
+  if (!llave || !passEnc) return null;
+  const [ver, ivHex, datosHex] = passEnc.split(':');
+  if (ver !== 'v1' || !ivHex || !datosHex) return null;
+  try {
+    const claro = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: hexToBytes(ivHex) }, llave, hexToBytes(datosHex));
+    return new TextDecoder().decode(claro);
+  } catch (e) { return null; } // llave distinta (se cambio PASSWORD_KEY) o dato alterado
+}
 
 // ---------- GitHub como base de datos (genérico para cualquier archivo JSON) ----------
 async function githubGetJsonFile(env, path) {
@@ -446,7 +477,50 @@ async function handleListUsers(request, env) {
   const auth = await checkAuth(request, env);
   if (!auth.ok || auth.role !== 'admin') return json({ error: 'unauthorized' }, 401);
   const { data: users } = await githubGetJsonFile(env, usersPath(env));
-  return json({ users: users.map(u => ({ id: u.id, username: u.username, name: u.name, createdAt: u.createdAt })) });
+  // La clave nunca viaja en el listado: solo si se puede consultar.
+  return json({ users: users.map(u => ({ id: u.id, username: u.username, name: u.name, createdAt: u.createdAt, claveConsultable: !!u.passEnc })) });
+}
+
+// Ver la clave de una cuenta (solo supervisor, una cuenta a la vez, bajo pedido)
+async function handleGetUserPassword(request, env) {
+  const auth = await checkAuth(request, env);
+  if (!auth.ok || auth.role !== 'admin') return json({ error: 'unauthorized' }, 401);
+  if (!env.PASSWORD_KEY) return json({ error: 'Falta configurar PASSWORD_KEY en Cloudflare para poder ver claves.' }, 503);
+  const id = new URL(request.url).searchParams.get('id');
+  if (!id) return json({ error: 'Falta id' }, 400);
+  const { data: users } = await githubGetJsonFile(env, usersPath(env));
+  const u = users.find(x => x.id === id);
+  if (!u) return json({ error: 'Cuenta no encontrada' }, 404);
+  if (!u.passEnc) return json({ error: 'Esta cuenta se creó antes de poder ver claves. Cámbiale la clave y desde ahí se podrá ver.' }, 404);
+  const password = await descifrarClave(env, u.passEnc);
+  if (password === null) return json({ error: 'No se pudo leer esta clave (¿cambió PASSWORD_KEY?). Cámbiala para poder verla.' }, 409);
+  return json({ password });
+}
+
+// Cambiar la clave de una cuenta (solo supervisor). Cierra la sesión que tenga abierta.
+async function handleSetUserPassword(request, env) {
+  const auth = await checkAuth(request, env);
+  if (!auth.ok || auth.role !== 'admin') return json({ error: 'unauthorized' }, 401);
+  let body;
+  try { body = await request.json(); } catch (e) { return json({ error: 'JSON inválido' }, 400); }
+  const id = body.id, password = body.password || '';
+  if (!id) return json({ error: 'Falta id' }, 400);
+  if (password.length < 4) return json({ error: 'La clave debe tener al menos 4 caracteres' }, 400);
+  if (password.length > 64) return json({ error: 'La clave es demasiado larga' }, 400);
+  const { hash, salt } = await hashPassword(password);
+  const passEnc = await cifrarClave(env, password);
+  try {
+    const value = await withRetryFile(env, usersPath(env), usersArr => {
+      const u = usersArr.find(x => x.id === id);
+      if (!u) return { noop: true, value: null };
+      u.hash = hash; u.salt = salt; u.passEnc = passEnc;
+      u.tokenHash = null;              // la sesión vieja deja de valer: entra con la clave nueva
+      u.passChangedAt = Date.now();
+      return { data: usersArr, value: { username: u.username } };
+    }, 'Cambiar clave de una cuenta');  // el mensaje del commit no lleva ni la clave ni el usuario
+    if (!value) return json({ error: 'Cuenta no encontrada' }, 404);
+    return json({ ok: true, claveConsultable: !!passEnc });
+  } catch (e) { return json({ error: e.message }, 500); }
 }
 
 async function handleCreateUser(request, env) {
@@ -459,10 +533,12 @@ async function handleCreateUser(request, env) {
   const password = body.password || '';
   if (!username || !name || !password) return json({ error: 'Faltan datos' }, 400);
   if (password.length < 4) return json({ error: 'La clave debe tener al menos 4 caracteres' }, 400);
+  if (password.length > 64) return json({ error: 'La clave es demasiado larga' }, 400);
   if (!/^[a-z0-9._-]+$/.test(username)) return json({ error: 'Usuario inválido: solo letras, números, punto, guion' }, 400);
 
   const { hash, salt } = await hashPassword(password);
-  const newUser = { id: crypto.randomUUID(), username, name, hash, salt, tokenHash: null, createdAt: Date.now() };
+  const passEnc = await cifrarClave(env, password);
+  const newUser = { id: crypto.randomUUID(), username, name, hash, salt, passEnc, tokenHash: null, createdAt: Date.now() };
   try {
     await withRetryFile(env, usersPath(env), usersArr => {
       if (usersArr.some(u => u.username === username)) { const err = new Error('dup'); err.dup = true; throw err; }
@@ -473,7 +549,7 @@ async function handleCreateUser(request, env) {
     if (e.dup) return json({ error: 'Ese usuario ya existe' }, 409);
     return json({ error: e.message }, 500);
   }
-  return json({ user: { id: newUser.id, username: newUser.username, name: newUser.name, createdAt: newUser.createdAt } });
+  return json({ user: { id: newUser.id, username: newUser.username, name: newUser.name, createdAt: newUser.createdAt, claveConsultable: !!passEnc } });
 }
 
 async function handleDeleteUser(request, env) {
@@ -585,6 +661,8 @@ export default {
     if (url.pathname === '/api/auth/me' && method === 'GET') return handleMe(request, env);
     if (url.pathname === '/api/auth/logout' && method === 'POST') return handleLogout(request, env);
 
+    if (url.pathname === '/api/users/password' && method === 'GET') return handleGetUserPassword(request, env);
+    if (url.pathname === '/api/users/password' && method === 'PUT') return handleSetUserPassword(request, env);
     if (url.pathname === '/api/users' && method === 'GET') return handleListUsers(request, env);
     if (url.pathname === '/api/users' && method === 'POST') return handleCreateUser(request, env);
     if (url.pathname === '/api/users' && method === 'DELETE') return handleDeleteUser(request, env);

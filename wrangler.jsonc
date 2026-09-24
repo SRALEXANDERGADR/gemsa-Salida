@@ -3,6 +3,9 @@
   //   GITHUB_TOKEN  (secreto)  Token de GitHub con permiso de lectura/escritura sobre el repo
   //   GITHUB_REPO   (secreto o variable)  "SRALEXANDERGADR/gemsa-Salida"
   //   ACCESS_CODE   (secreto)  Clave de acceso del supervisor
+  //   PASSWORD_KEY  (secreto)  Llave para cifrar las claves del personal (para poder verlas).
+  //                            Cadena larga y aleatoria. Si se cambia, las claves guardadas
+  //                            dejan de poder verse (hay que cambiarlas de nuevo).
   //
   // Los datos viven en la carpeta data/ del repo. En Cloudflare, "Rutas de
   // vigilancia de compilación" debe excluir data/** para que cada registro

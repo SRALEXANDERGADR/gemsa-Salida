@@ -261,7 +261,30 @@
   .header-right{display:flex; align-items:center; gap:10px; flex-shrink:0;}
 
   .staff-row{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px;
-    margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:10px;}
+    margin-bottom:8px;}
+  .staff-main{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .staff-acts{display:flex; gap:6px; flex-shrink:0;}
+  .staff-acts .icon-btn{width:32px; height:32px;}
+  .staff-acts .icon-btn.activo{color:var(--accent); border-color:var(--accent);}
+  /* Clave a la vista */
+  .clave-box{display:none; margin-top:10px; padding:9px 11px; border-radius:8px; background:var(--panel-raised);
+    border:1px dashed var(--line); align-items:center; gap:10px;}
+  .clave-box.open{display:flex;}
+  .clave-box .lbl{font-size:12px; color:var(--text-dim);}
+  .clave-box .valor{font-family:var(--mono); font-weight:700; font-size:16px; color:var(--text); flex:1; min-width:0;
+    overflow-wrap:anywhere; letter-spacing:.04em;}
+  .clave-box .nota{font-size:12.5px; color:#f2a568; flex:1;}
+  .clave-box button{background:transparent; color:var(--text-dim); border:1px solid var(--line); border-radius:6px;
+    padding:6px 10px; font-size:12px; font-weight:700; flex-shrink:0;}
+  /* Cambiar clave */
+  .clave-form{display:none; margin-top:10px; gap:8px; align-items:center;}
+  .clave-form.open{display:flex;}
+  .clave-form input{flex:1; min-width:0; background:var(--panel-raised); border:1px solid var(--line); color:var(--text);
+    border-radius:7px; padding:10px 11px; font-size:16px; font-family:inherit;}
+  .clave-form input:focus{outline:none; border-color:var(--accent);}
+  .clave-form button{background:var(--accent); color:var(--accent-ink); border-radius:7px; padding:10px 13px;
+    font-size:13px; font-weight:700; flex-shrink:0;}
+  .clave-form button:disabled{opacity:.55;}
   .staff-row .who{min-width:0;}
   .staff-row .who .name{font-size:14.5px; font-weight:600;}
   .staff-row .who .user{font-size:12px; color:var(--text-dim); font-family:var(--mono);}
@@ -1068,6 +1091,8 @@ function renderTrashEntry(e){
 }
 
 const ICON_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg>';
+const ICON_OJO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+const ICON_LLAVE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 21 2M16 7l3 3M14 9l2 2"/></svg>';
 const ICON_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
 const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
 
@@ -1373,15 +1398,108 @@ function renderStaff(){
   if(staff.length === 0){ list.innerHTML = '<div class="empty">Aún no hay personal registrado.</div>'; return; }
   list.innerHTML = staff.map(u => `
     <div class="staff-row" data-id="${u.id}">
-      <div class="who">
-        <div class="name">${escapeHtml(u.name)}</div>
-        <div class="user">${escapeHtml(u.username)}</div>
+      <div class="staff-main">
+        <div class="who">
+          <div class="name">${escapeHtml(u.name)}</div>
+          <div class="user">${escapeHtml(u.username)}</div>
+        </div>
+        <div class="staff-acts">
+          <button class="icon-btn" data-id="${u.id}" data-action="ver-clave" title="Ver clave">${ICON_OJO}</button>
+          <button class="icon-btn" data-id="${u.id}" data-action="cambiar-clave" title="Cambiar clave">${ICON_LLAVE}</button>
+          <button class="del" data-id="${u.id}" data-action="delete-staff" title="Eliminar cuenta">&times;</button>
+        </div>
       </div>
-      <button class="del" data-id="${u.id}" data-action="delete-staff" title="Eliminar cuenta">&times;</button>
+      <div class="clave-box" id="clave-${u.id}"></div>
+      <div class="clave-form" id="clave-form-${u.id}">
+        <input type="text" id="clave-nueva-${u.id}" placeholder="Clave nueva (mínimo 4)" maxlength="64" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <button data-id="${u.id}" data-action="guardar-clave">Guardar</button>
+      </div>
     </div>`).join('');
   list.querySelectorAll('[data-action="delete-staff"]').forEach(btn=>{
     btn.addEventListener('click', ()=> deleteStaff(btn.getAttribute('data-id')));
   });
+  list.querySelectorAll('[data-action="ver-clave"]').forEach(btn=>{
+    btn.addEventListener('click', ()=> verClave(btn.getAttribute('data-id'), btn));
+  });
+  list.querySelectorAll('[data-action="cambiar-clave"]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.getAttribute('data-id');
+      const form = document.getElementById('clave-form-'+id);
+      const abrir = !form.classList.contains('open');
+      form.classList.toggle('open', abrir);
+      btn.classList.toggle('activo', abrir);
+      if(abrir) document.getElementById('clave-nueva-'+id).focus();
+    });
+  });
+  list.querySelectorAll('[data-action="guardar-clave"]').forEach(btn=>{
+    btn.addEventListener('click', ()=> guardarClave(btn.getAttribute('data-id'), btn));
+  });
+}
+
+// ---------- ver y cambiar la clave de una cuenta ----------
+// La clave se pide al servidor solo cuando se toca "Ver", se muestra un rato y se
+// vuelve a ocultar sola, para que no quede a la vista en un celular desbloqueado.
+const ocultarClaveEn = {};
+function ocultarClave(id){
+  const box = document.getElementById('clave-'+id);
+  if(box){ box.classList.remove('open'); box.innerHTML = ''; }
+  const btn = document.querySelector(`[data-action="ver-clave"][data-id="${id}"]`);
+  if(btn) btn.classList.remove('activo');
+  clearTimeout(ocultarClaveEn[id]);
+}
+function mostrarClave(id, password){
+  const box = document.getElementById('clave-'+id);
+  box.innerHTML = `<span class="lbl">Clave:</span><span class="valor">${escapeHtml(password)}</span>
+    <button data-copiar>Copiar</button><button data-ocultar>Ocultar</button>`;
+  box.classList.add('open');
+  box.querySelector('[data-ocultar]').addEventListener('click', ()=> ocultarClave(id));
+  box.querySelector('[data-copiar]').addEventListener('click', ()=>{
+    navigator.clipboard.writeText(password).then(()=> toast('Clave copiada')).catch(()=> toast('No se pudo copiar'));
+  });
+  const btn = document.querySelector(`[data-action="ver-clave"][data-id="${id}"]`);
+  if(btn) btn.classList.add('activo');
+  clearTimeout(ocultarClaveEn[id]);
+  ocultarClaveEn[id] = setTimeout(()=> ocultarClave(id), 30000);
+}
+async function verClave(id, btn){
+  const box = document.getElementById('clave-'+id);
+  if(box.classList.contains('open')){ ocultarClave(id); return; }
+  btn.disabled = true;
+  try{
+    const res = await apiFetch('/api/users/password?id=' + encodeURIComponent(id));
+    const d = await res.json().catch(()=>({}));
+    if(!res.ok){
+      // Sin clave consultable: se explica en el propio recuadro qué hacer
+      box.innerHTML = `<span class="nota">${escapeHtml(d.error || 'No se pudo ver la clave.')}</span><button data-ocultar>Cerrar</button>`;
+      box.classList.add('open');
+      box.querySelector('[data-ocultar]').addEventListener('click', ()=> ocultarClave(id));
+    } else {
+      mostrarClave(id, d.password);
+    }
+  }catch(e){ console.error(e); toast('No se pudo ver la clave.'); }
+  btn.disabled = false;
+}
+async function guardarClave(id, btn){
+  const input = document.getElementById('clave-nueva-'+id);
+  const password = input.value;
+  if(password.length < 4){ toast('La clave debe tener al menos 4 caracteres.'); input.focus(); return; }
+  const u = staff.find(x => x.id === id);
+  if(!confirm(`¿Cambiar la clave de ${u ? u.name : 'esta cuenta'}? Tendrá que volver a entrar con la clave nueva.`)) return;
+  btn.disabled = true; btn.textContent = 'Guardando...';
+  try{
+    const res = await apiFetch('/api/users/password', { method:'PUT', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id, password }) });
+    const d = await res.json().catch(()=>({}));
+    if(!res.ok) throw new Error(d.error || 'No se pudo cambiar la clave.');
+    input.value = '';
+    document.getElementById('clave-form-'+id).classList.remove('open');
+    const bKey = document.querySelector(`[data-action="cambiar-clave"][data-id="${id}"]`);
+    if(bKey) bKey.classList.remove('activo');
+    if(u) u.claveConsultable = d.claveConsultable;
+    mostrarClave(id, password);
+    toast(`Clave cambiada. ${u ? u.name.split(' ')[0] : 'La persona'} tendrá que entrar con la nueva.`);
+  }catch(e){ console.error(e); toast(e.message); }
+  btn.disabled = false; btn.textContent = 'Guardar';
 }
 document.getElementById('btn-add-staff').addEventListener('click', async ()=>{
   const usernameEl = document.getElementById('s-username');
