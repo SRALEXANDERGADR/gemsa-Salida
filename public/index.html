@@ -78,11 +78,32 @@
   .section-title h2{font-size:12px; text-transform:uppercase; letter-spacing:0.05em; color:var(--text-dim); font-weight:700; margin:0;}
   .copy-btn{background:var(--panel-raised); color:var(--text); border:1px solid var(--line); border-radius:7px;
     padding:8px 12px; font-size:12.5px; font-weight:600;}
-  .list-actions{display:flex; gap:6px; flex-shrink:0;}
+  .list-hint{font-size:11.5px; color:var(--text-faint); flex-shrink:0;}
   .copy-btn.copied{color:var(--ok); border-color:var(--ok);}
 
   .day-label{font-size:11.5px; color:var(--text-dim); font-weight:700; margin:16px 0 8px; text-transform:uppercase; letter-spacing:0.03em;}
   .day-label:first-child{margin-top:0;}
+
+  /* Cada día es un bloque cerrado: su fecha, cuántas unidades y cuánto le queda. */
+  .day-block{border:1px solid var(--line); border-radius:var(--radius); margin-bottom:12px; overflow:hidden;
+    background:var(--bg);}
+  .day-block.hoy{border-color:var(--accent-dim);}
+  .day-head{display:flex; align-items:center; gap:8px; padding:11px 12px; background:var(--panel);}
+  .day-toggle{flex:1; min-width:0; display:flex; align-items:center; gap:9px; background:transparent;
+    text-align:left; padding:0; color:inherit; font-family:inherit;}
+  .day-caret{color:var(--text-faint); font-size:11px; flex-shrink:0; transition:transform .18s ease;}
+  .day-block.abierto .day-caret{transform:rotate(90deg);}
+  .day-info{min-width:0;}
+  .day-title{font-size:13.5px; font-weight:700; color:var(--text); display:block;}
+  .day-block.hoy .day-title{color:var(--accent);}
+  .day-meta{font-size:11.5px; color:var(--text-faint); display:block; margin-top:2px;}
+  .day-meta .pronto{color:var(--danger);}
+  .day-acts{display:flex; gap:6px; flex-shrink:0;}
+  .day-acts .icon-btn{width:30px; height:30px;}
+  .day-acts .icon-btn svg{width:15px; height:15px;}
+  .day-body{padding:10px 10px 4px; display:none;}
+  .day-block.abierto .day-body{display:block;}
+  .day-body .entry:last-child{margin-bottom:6px;}
 
   .entry{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:13px 14px; margin-bottom:8px;}
   .entry-top{display:flex; gap:11px; align-items:flex-start;}
@@ -297,10 +318,7 @@
 
   <div class="section-title">
     <h2 id="list-title">Registros</h2>
-    <div class="list-actions">
-      <button class="copy-btn" id="btn-share-day">Compartir imagen</button>
-      <button class="copy-btn" id="btn-copy">Copiar texto</button>
-    </div>
+    <span class="list-hint">Toca un día para abrirlo</span>
   </div>
 
   <div id="list"></div>
@@ -467,7 +485,8 @@ function dateLabel(ts){
   if(d.toDateString() === today.toDateString()) return 'Hoy · ' + dateKey(ts);
   const yest = new Date(today); yest.setDate(yest.getDate()-1);
   if(d.toDateString() === yest.toDateString()) return 'Ayer · ' + dateKey(ts);
-  return d.toLocaleDateString('es-MX', {weekday:'long', day:'2-digit', month:'2-digit'});
+  const dia = d.toLocaleDateString('es-DO', {weekday:'long'});
+  return dia.charAt(0).toUpperCase() + dia.slice(1) + ' · ' + dateKey(ts);
 }
 function timeOfDay(ts){ const d = new Date(ts); return pad2(d.getHours())+':'+pad2(d.getMinutes()); }
 function daysLeft(ts){
@@ -600,7 +619,7 @@ function switchTab(tab){
   document.getElementById('tab-trash').classList.toggle('active', tab==='trash');
   document.getElementById('tab-staff').classList.toggle('active', tab==='staff');
   document.getElementById('form-card').style.display = tab==='active' ? 'block' : 'none';
-  document.querySelector('.list-actions').style.display = tab==='active' ? 'flex' : 'none';
+  document.querySelector('.list-hint').style.display = tab==='staff' ? 'none' : 'inline';
   document.getElementById('list').style.display = tab==='staff' ? 'none' : 'block';
   document.getElementById('staff-form-card').style.display = tab==='staff' ? 'block' : 'none';
   document.getElementById('staff-list').style.display = tab==='staff' ? 'block' : 'none';
@@ -632,23 +651,73 @@ function render(){
     return;
   }
 
-  const groups = {}; const order = [];
-  for(const e of data){
-    const key = dateKey(currentTab==='active' ? e.createdAt : e.deletedAt);
-    if(!groups[key]){ groups[key] = []; order.push(key); }
-    groups[key].push(e);
-  }
-
-  let html = '';
-  for(const key of order){
-    const g = groups[key];
-    html += `<div class="day-label">${dateLabel(currentTab==='active' ? g[0].createdAt : g[0].deletedAt)}</div>`;
-    for(const e of g){
-      html += currentTab === 'active' ? renderActiveEntry(e) : renderTrashEntry(e);
-    }
-  }
-  list.innerHTML = html;
+  list.innerHTML = construirBloques(data, currentTab === 'trash');
   attachListHandlers();
+}
+
+// ---------- bloques por día ----------
+// Qué día "manda" en cada registro: el de su borrado si está en la papelera,
+// el de su creación si está activo.
+function diaDelRegistro(e, esPapelera){ return esPapelera ? e.deletedAt : e.createdAt; }
+
+// A los 30 días se borra solo, contando desde su creación o su última edición.
+function diasQueLeQuedan(e, esPapelera){
+  const base = esPapelera ? e.deletedAt : (e.editedAt || e.createdAt);
+  const restanteMs = (RETENTION_DAYS*24*60*60*1000) - (Date.now() - base);
+  return Math.max(0, Math.ceil(restanteMs / (24*60*60*1000)));
+}
+
+// Si el usuario abre o cierra un día, se respeta; si no, solo el día más
+// reciente viene abierto para no tener que bajar por 30 días de historial.
+const estadoDias = {};
+function diaEstaAbierto(clave, esElPrimero){
+  return (clave in estadoDias) ? estadoDias[clave] : esElPrimero;
+}
+
+function agruparPorDia(data, esPapelera){
+  const grupos = {}, orden = [];
+  for(const e of data){
+    const clave = dateKey(diaDelRegistro(e, esPapelera));
+    if(!grupos[clave]){ grupos[clave] = []; orden.push(clave); }
+    grupos[clave].push(e);
+  }
+  return orden.map(clave => ({ clave, items: grupos[clave] }));
+}
+
+function construirBloques(data, esPapelera){
+  return agruparPorDia(data, esPapelera).map((g, i) => {
+    const primero = g.items[0];
+    const etiqueta = dateLabel(diaDelRegistro(primero, esPapelera));
+    const esHoy = new Date(diaDelRegistro(primero, esPapelera)).toDateString() === new Date().toDateString();
+    const abierto = diaEstaAbierto(g.clave, i === 0);
+    // El bloque empieza a vaciarse cuando caduca su registro más antiguo.
+    const dias = Math.min(...g.items.map(e => diasQueLeQuedan(e, esPapelera)));
+    const urgente = dias <= 3;
+    const cuantos = `${g.items.length} unidad${g.items.length===1?'':'es'}`;
+    const unaSola = g.items.length === 1;
+    const aviso = esPapelera
+      ? `se borra${unaSola?'':'n'} para siempre en ${dias} día${dias===1?'':'s'}`
+      : `se elimina${unaSola?'':'n'} en ${dias} día${dias===1?'':'s'}`;
+    const cuerpo = g.items.map(e => esPapelera ? renderTrashEntry(e) : renderActiveEntry(e)).join('');
+    const acciones = esPapelera ? '' : `
+        <div class="day-acts">
+          <button class="icon-btn" data-action="share-day" data-day="${g.clave}" title="Compartir este día como imagen">${ICON_SHARE}</button>
+          <button class="icon-btn" data-action="copy-day" data-day="${g.clave}" title="Copiar este día como texto">${ICON_COPY}</button>
+        </div>`;
+    return `
+      <section class="day-block ${abierto?'abierto':''} ${esHoy?'hoy':''}" data-day="${g.clave}">
+        <div class="day-head">
+          <button class="day-toggle" data-action="toggle-day" data-day="${g.clave}">
+            <span class="day-caret">&#9654;</span>
+            <span class="day-info">
+              <span class="day-title">${escapeHtml(etiqueta)}</span>
+              <span class="day-meta">${cuantos} · <span class="${urgente?'pronto':''}">${aviso}</span></span>
+            </span>
+          </button>${acciones}
+        </div>
+        <div class="day-body">${cuerpo}</div>
+      </section>`;
+  }).join('');
 }
 
 function renderActiveEntry(e){
@@ -756,6 +825,7 @@ function renderTrashEntry(e){
 }
 
 const ICON_SHARE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.5" x2="15.4" y2="6.5"/><line x1="8.6" y1="13.5" x2="15.4" y2="17.5"/></svg>';
+const ICON_COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>';
 const ICON_TRASH = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>';
 
 function attachListHandlers(){
@@ -788,6 +858,21 @@ function attachListHandlers(){
   });
   document.querySelectorAll('[data-action="save-time"]').forEach(btn=>{
     btn.addEventListener('click', ()=> saveEditedTime(btn));
+  });
+  document.querySelectorAll('[data-action="toggle-day"]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const clave = btn.getAttribute('data-day');
+      const bloque = document.querySelector(`.day-block[data-day="${clave}"]`);
+      const abrir = !bloque.classList.contains('abierto');
+      bloque.classList.toggle('abierto', abrir);
+      estadoDias[clave] = abrir; // se recuerda al volver a dibujar la lista
+    });
+  });
+  document.querySelectorAll('[data-action="share-day"]').forEach(btn=>{
+    btn.addEventListener('click', ()=> compartirDia(btn.getAttribute('data-day'), btn));
+  });
+  document.querySelectorAll('[data-action="copy-day"]').forEach(btn=>{
+    btn.addEventListener('click', ()=> copiarDia(btn.getAttribute('data-day')));
   });
 }
 
@@ -894,20 +979,21 @@ async function purgeEntry(id){
   }catch(e){ console.error(e); toast('No se pudo eliminar.'); }
 }
 
-// ---------- copiar lista de hoy ----------
-document.getElementById('btn-copy').addEventListener('click', ()=>{
-  const today = new Date().toDateString();
-  const todays = entries.filter(e => new Date(e.createdAt).toDateString() === today);
-  if(todays.length === 0){ toast('No hay registros de hoy'); return; }
-  const sorted = [...todays].sort((a,b)=> a.time.localeCompare(b.time));
-  const dateStr = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'2-digit', year:'numeric'});
-  let text = `Operativa comercial\n${dateStr}\n\n` + sorted.map(e => `${e.code} ${e.name}`).join('\n\n');
-  navigator.clipboard.writeText(text).then(()=>{
-    const btn = document.getElementById('btn-copy');
-    btn.classList.add('copied'); btn.textContent = 'Copiado ✓';
-    setTimeout(()=>{ btn.classList.remove('copied'); btn.textContent = 'Copiar lista de hoy'; }, 1700);
-  }).catch(()=> toast('No se pudo copiar'));
-});
+// ---------- los registros de un día concreto, en orden de salida ----------
+function registrosDelDia(clave){
+  return entries.filter(e => dateKey(e.createdAt) === clave)
+                .sort((a,b)=> (a.time||'').localeCompare(b.time||''));
+}
+
+// ---------- copiar un día como texto (el formato del grupo de WhatsApp) ----------
+function copiarDia(clave){
+  const items = registrosDelDia(clave);
+  if(items.length === 0){ toast('Ese día no tiene registros'); return; }
+  const texto = `Operativa comercial\n${clave}\n\n` + items.map(e => `${e.code} ${e.name}`).join('\n\n');
+  navigator.clipboard.writeText(texto)
+    .then(()=> toast('Lista copiada'))
+    .catch(()=> toast('No se pudo copiar'));
+}
 
 // ---------- compartir la lista del dia como imagen ----------
 // Android solo abre el menú de compartir si la llamada sale de un toque reciente.
@@ -962,16 +1048,13 @@ async function canvasToShare(canvas, filename, title, text){
   });
 }
 
-document.getElementById('btn-share-day').addEventListener('click', async ()=>{
-  const today = new Date().toDateString();
-  const todays = entries.filter(e => new Date(e.createdAt).toDateString() === today)
-                        .sort((a,b)=> (a.time||'').localeCompare(b.time||''));
-  if(todays.length === 0){ toast('No hay registros de hoy'); return; }
-  const btn = document.getElementById('btn-share-day');
-  btn.disabled = true; btn.textContent = 'Generando...';
-  const dateStr = new Date().toLocaleDateString('es-DO', {day:'2-digit', month:'2-digit', year:'numeric'});
+async function compartirDia(clave, btn){
+  const items = registrosDelDia(clave);
+  if(items.length === 0){ toast('Ese día no tiene registros'); return; }
+  if(btn) btn.disabled = true;
+  const dateStr = clave;
   const holder = document.getElementById('share-render');
-  const rows = todays.map(e => `
+  const rows = items.map(e => `
     <tr>
       <td style="padding:9px 0; font-family:'JetBrains Mono',monospace; font-weight:700; color:#ea6a2e; white-space:nowrap; vertical-align:top;">${escapeHtml(e.code)}</td>
       <td style="padding:9px 12px; font-size:15px; vertical-align:top;">${escapeHtml(e.name)}</td>
@@ -986,7 +1069,7 @@ document.getElementById('btn-share-day').addEventListener('click', async ()=>{
       <div style="font-size:14px; color:#6b7480; margin-top:2px;">${dateStr}</div>
       <table style="width:100%; border-collapse:collapse; margin-top:18px; border-top:1px solid #e4e6e9;">${rows}</table>
       <div style="margin-top:18px; padding-top:12px; border-top:1px solid #e4e6e9; font-size:11px; color:#9aa2ad;">
-        ${todays.length} unidad${todays.length===1?'':'es'} · Generado por GADR Net
+        ${items.length} unidad${items.length===1?'':'es'} · Generado por GADR Net
       </div>
     </div>`;
   try{
@@ -994,8 +1077,8 @@ document.getElementById('btn-share-day').addEventListener('click', async ()=>{
     const canvas = await html2canvas(holder, { backgroundColor:'#ffffff', scale:2 });
     await canvasToShare(canvas, `operativa-${dateStr.replace(/\//g,'-')}.png`, 'Operativa comercial', 'Operativa comercial ' + dateStr);
   }catch(e){ console.error(e); toast(e.message || 'No se pudo generar la imagen.'); }
-  btn.disabled = false; btn.textContent = 'Compartir imagen';
-});
+  if(btn) btn.disabled = false;
+}
 
 // ---------- compartir un registro como imagen ----------
 async function shareEntry(id){
@@ -1088,19 +1171,7 @@ async function deleteStaff(id){
 function renderWorkerList(){
   const list = document.getElementById('worker-list');
   if(entries.length === 0){ list.innerHTML = '<div class="empty">Aún no has registrado ninguna salida.</div>'; return; }
-  const groups = {}; const order = [];
-  for(const e of entries){
-    const key = dateKey(e.createdAt);
-    if(!groups[key]){ groups[key] = []; order.push(key); }
-    groups[key].push(e);
-  }
-  let html = '';
-  for(const key of order){
-    const g = groups[key];
-    html += `<div class="day-label">${dateLabel(g[0].createdAt)}</div>`;
-    for(const e of g) html += renderActiveEntry(e);
-  }
-  list.innerHTML = html;
+  list.innerHTML = construirBloques(entries, false);
   attachListHandlers();
 }
 
