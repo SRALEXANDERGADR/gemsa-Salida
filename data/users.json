@@ -3,9 +3,11 @@
     "id": "d23c3536-c39b-42d8-8152-8a5e8452a16a",
     "username": "alexander",
     "name": "Alexander Rossis",
-    "hash": "4038fe6fcc6dc19bc161df3bd1b0086013c22a8e571af303e079d26b155a9200",
-    "salt": "f5401bf05778ba07b3d9470d5bfca86a",
+    "hash": "7bffb3bad8d98bff1ba41341ecc6945822deeec471368167f73acfc89dfadcb0",
+    "salt": "646c8498a10e493b3526ff02656728fc",
     "tokenHash": null,
-    "createdAt": 1790210138906
+    "createdAt": 1790210138906,
+    "passEnc": "v1:be043f47e352608d23a8df92:18b0a8591333d6e96b9192b39d6bd36ad09bd012",
+    "passChangedAt": 1790282948463
   }
 ]
