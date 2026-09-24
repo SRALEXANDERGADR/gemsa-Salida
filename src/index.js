@@ -192,7 +192,9 @@ async function handlePost(request, env) {
   const entry = {
     id: crypto.randomUUID(), code, name, time, obs, status: 'fuera', returnTime: null,
     workerId, workerUsername,
-    createdAt: Date.now(), editedAt: null, deletedAt: null, history: []
+    createdAt: Date.now(), editedAt: null, deletedAt: null,
+    createdBy: auth.role === 'worker' ? auth.worker.name : 'Supervisor',
+    history: []
   };
   try {
     await withRetryFile(env, entriesPath(env), entries => {
@@ -231,28 +233,29 @@ async function handlePut(request, env) {
       // Antes guardaba una foto completa del registro y, si llegaban dos peticiones
       // iguales (doble toque), quedaban dos filas identicas en pantalla.
       const now = Date.now();
+      const who = auth.role === 'worker' ? auth.worker.name : 'Supervisor';
       const changes = [];
       if (body.time !== undefined && body.time !== current.time) {
-        changes.push({ changedAt: now, action: 'Hora de salida', from: current.time, to: body.time });
+        changes.push({ changedAt: now, by: who, type: 'salida', from: current.time, to: body.time });
       }
       if (body.status !== undefined && body.status !== current.status) {
         if (body.status === 'regreso') {
-          changes.push({ changedAt: now, action: 'Regreso marcado', from: 'fuera', to: body.returnTime || '—' });
+          changes.push({ changedAt: now, by: who, type: 'regreso_marcado', from: null, to: body.returnTime || null });
         } else {
-          changes.push({ changedAt: now, action: 'Regreso deshecho', from: current.returnTime || 'regresó', to: 'fuera' });
+          changes.push({ changedAt: now, by: who, type: 'regreso_deshecho', from: current.returnTime || null, to: null });
         }
       } else if (body.returnTime !== undefined && body.returnTime !== current.returnTime && current.returnTime) {
-        changes.push({ changedAt: now, action: 'Hora de regreso', from: current.returnTime, to: body.returnTime });
+        changes.push({ changedAt: now, by: who, type: 'regreso_hora', from: current.returnTime, to: body.returnTime });
       }
       if (body.obs !== undefined && body.obs !== current.obs) {
-        changes.push({ changedAt: now, action: 'Observación', from: current.obs || '—', to: body.obs || '—' });
+        changes.push({ changedAt: now, by: who, type: 'observacion', from: current.obs || null, to: body.obs || null });
       }
 
       // Nada cambio realmente: no se escribe nada ni se ensucia el historial.
       if (changes.length === 0) return { noop: true, value: current };
 
       // "Regreso marcado" no cuenta como edicion: es parte del flujo normal.
-      const isRealEdit = changes.some(c => c.action !== 'Regreso marcado');
+      const isRealEdit = changes.some(c => c.type !== 'regreso_marcado');
       for (const c of changes) current.history.push(c);
       if (isRealEdit) current.editedAt = now;
 

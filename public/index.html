@@ -126,8 +126,27 @@
   .history{margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); display:none;}
   .history.open{display:block;}
   .history h4{font-size:11px; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-faint); margin:0 0 6px; font-weight:700;}
+  .hist-item{padding:7px 0 7px 12px; border-left:2px solid var(--line); margin-bottom:2px;}
+  .hist-item:last-child{margin-bottom:0;}
+  .hist-what{font-size:13px; color:var(--text); line-height:1.4;}
+  .hist-what b{font-family:var(--mono); font-weight:700; color:var(--accent);}
+  .hist-who{font-size:11.5px; color:var(--text-faint); margin-top:2px;}
+  .hist-item.creado{border-left-color:var(--ok);}
   .history-row{font-size:12px; color:var(--text-dim); padding:3px 0; font-family:var(--mono);}
   .history-row .arrow{color:var(--text-faint);}
+
+  /* Vista previa antes de compartir: el segundo toque es lo que permite a
+     Android abrir el menú de compartir de forma fiable. */
+  .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.72); z-index:80;
+    display:none; align-items:center; justify-content:center; padding:18px;}
+  .modal-backdrop.open{display:flex;}
+  .modal{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px;
+    width:100%; max-width:420px; max-height:92vh; display:flex; flex-direction:column; gap:12px;}
+  .modal h3{margin:0; font-size:15px; font-weight:700;}
+  .modal img{width:100%; height:auto; border-radius:8px; background:#fff; flex:1 1 auto; min-height:0;
+    object-fit:contain;}
+  .modal-actions{display:flex; gap:8px; flex-shrink:0;}
+  .modal-actions .btn-primary{margin-top:0;}
 
   .trash-note{font-size:11.5px; color:var(--text-faint); margin-top:8px;}
   .trash-actions{display:flex; gap:8px; margin-top:8px;}
@@ -365,6 +384,18 @@
     </a>
   </footer>
 </div><!-- /#worker-app -->
+
+<div id="share-preview" class="modal-backdrop">
+  <div class="modal">
+    <h3>Vista previa</h3>
+    <img id="share-preview-img" alt="Imagen que se va a compartir">
+    <div class="modal-actions">
+      <button class="btn-primary" id="share-preview-send">Compartir</button>
+      <button class="copy-btn" id="share-preview-save">Guardar</button>
+      <button class="copy-btn" id="share-preview-close">Cerrar</button>
+    </div>
+  </div>
+</div>
 
 <div id="share-render"></div>
 <div class="toast" id="toast"></div>
@@ -622,7 +653,7 @@ function render(){
 
 function renderActiveEntry(e){
   const isBack = e.status === 'regreso';
-  const edited = e.history && e.history.length > 0;
+  const edited = !!e.editedAt;  // solo cuenta como editado si se corrigió algo, no al marcar regreso
   return `
     <div class="entry" data-id="${e.id}">
       <div class="entry-top">
@@ -633,7 +664,7 @@ function renderActiveEntry(e){
             <span>${e.time}</span>
             <span class="status-pill ${isBack?'regreso':'fuera'}">${isBack?'Regresó':'Fuera'}</span>
             ${isBack ? `<span>· regresó ${escapeHtml(e.returnTime||'')}</span>` : ''}
-            ${edited ? `<span class="edited-flag" data-id="${e.id}" data-action="toggle-history">editado</span>` : ''}
+            <span class="edited-flag" data-id="${e.id}" data-action="toggle-history">${edited ? 'editado' : 'historial'}</span>
           </div>
           ${e.obs ? `<div class="entry-obs">${escapeHtml(e.obs)}</div>` : ''}
         </div>
@@ -654,20 +685,55 @@ function renderActiveEntry(e){
         <select id="em-${e.id}">${timeOptionsHtml((e.time||'00:00').split(':')[1], 60)}</select>
         <button class="save-time-btn" data-id="${e.id}" data-action="save-time">Guardar</button>
       </div>
-      ${edited ? renderHistory(e) : ''}
+      ${renderHistory(e)}
     </div>`;
 }
 
+// Cuándo pasó, en palabras: "hoy 11:46", "ayer 08:02", "22/09 · 07:15"
+function cuando(ts){
+  const d = new Date(ts), hoy = new Date();
+  const ayer = new Date(hoy); ayer.setDate(ayer.getDate()-1);
+  const hm = pad2(d.getHours())+':'+pad2(d.getMinutes());
+  if(d.toDateString() === hoy.toDateString()) return 'hoy ' + hm;
+  if(d.toDateString() === ayer.toDateString()) return 'ayer ' + hm;
+  return pad2(d.getDate())+'/'+pad2(d.getMonth()+1)+' · '+hm;
+}
+
+// Cada cambio contado como una frase, no como un volcado de datos.
+function fraseDelCambio(h){
+  const b = v => '<b>'+escapeHtml(String(v))+'</b>';
+  switch(h.type){
+    case 'salida':            return `Corrigió la hora de salida: de ${b(h.from)} a ${b(h.to)}`;
+    case 'regreso_marcado':   return h.to ? `Marcó el regreso a las ${b(h.to)}` : 'Marcó el regreso';
+    case 'regreso_deshecho':  return h.from ? `Deshizo el regreso (estaba marcado a las ${b(h.from)})` : 'Deshizo el regreso';
+    case 'regreso_hora':      return `Corrigió la hora de regreso: de ${b(h.from)} a ${b(h.to)}`;
+    case 'observacion':       return h.to ? `Cambió la observación a "${escapeHtml(h.to)}"` : 'Quitó la observación';
+  }
+  // Cambios guardados antes de esta versión, que no traen tipo.
+  if(h.action) return `${escapeHtml(h.action)}: de ${b(h.from)} a ${b(h.to)}`;
+  return `Cambió la hora de salida (antes ${b(h.time)})`;
+}
+
 function renderHistory(e){
-  const rows = e.history.map(h => {
-    if(h.action){
-      // Formato nuevo: dice qué cambió y de qué valor a qué valor.
-      return `<div class="history-row">${timeOfDay(h.changedAt)} <span class="arrow">·</span> ${escapeHtml(h.action)}: ${escapeHtml(String(h.from))} → ${escapeHtml(String(h.to))}</div>`;
-    }
-    // Registros guardados antes de este arreglo: se muestran como quedaron.
-    return `<div class="history-row">${timeOfDay(h.changedAt)} <span class="arrow">·</span> era ${escapeHtml(String(h.time))}</div>`;
-  }).join('');
-  return `<div class="history" id="hist-${e.id}"><h4>Historial de ediciones</h4>${rows}</div>`;
+  const hist = (e.history || []).slice();
+  // La hora con la que se creó el registro es el "de" del primer cambio de salida.
+  const primerCambioSalida = hist.find(h => h.type === 'salida' || h.action === 'Hora de salida');
+  const horaOriginal = primerCambioSalida ? primerCambioSalida.from : e.time;
+
+  // Lo más reciente arriba, igual que la lista de registros.
+  const filas = hist.slice().reverse().map(h => `
+    <div class="hist-item">
+      <div class="hist-what">${fraseDelCambio(h)}</div>
+      <div class="hist-who">${h.by ? escapeHtml(h.by) + ' · ' : ''}${cuando(h.changedAt)}</div>
+    </div>`).join('');
+
+  const creado = `
+    <div class="hist-item creado">
+      <div class="hist-what">Registró la salida a las <b>${escapeHtml(String(horaOriginal||''))}</b></div>
+      <div class="hist-who">${e.createdBy ? escapeHtml(e.createdBy) + ' · ' : ''}${cuando(e.createdAt)}</div>
+    </div>`;
+
+  return `<div class="history" id="hist-${e.id}"><h4>Historial del registro</h4>${filas}${creado}</div>`;
 }
 
 function renderTrashEntry(e){
@@ -844,20 +910,53 @@ document.getElementById('btn-copy').addEventListener('click', ()=>{
 });
 
 // ---------- compartir la lista del dia como imagen ----------
+// Android solo abre el menú de compartir si la llamada sale de un toque reciente.
+// Generar la imagen tarda lo suficiente como para perder ese permiso, así que
+// primero se muestra la imagen y el usuario toca "Compartir": ese toque sí vale.
+let vistaPrevia = null; // { blob, url, filename, title, text }
+
+function abrirVistaPrevia(blob, filename, title, text){
+  if(vistaPrevia) URL.revokeObjectURL(vistaPrevia.url);
+  const url = URL.createObjectURL(blob);
+  vistaPrevia = { blob, url, filename, title, text };
+  document.getElementById('share-preview-img').src = url;
+  document.getElementById('share-preview').classList.add('open');
+}
+function cerrarVistaPrevia(){
+  document.getElementById('share-preview').classList.remove('open');
+  document.getElementById('share-preview-img').src = '';
+  if(vistaPrevia){ URL.revokeObjectURL(vistaPrevia.url); vistaPrevia = null; }
+}
+document.getElementById('share-preview-close').addEventListener('click', cerrarVistaPrevia);
+document.getElementById('share-preview').addEventListener('click', (ev)=>{
+  if(ev.target.id === 'share-preview') cerrarVistaPrevia();
+});
+document.getElementById('share-preview-save').addEventListener('click', ()=>{
+  if(!vistaPrevia) return;
+  const a = document.createElement('a');
+  a.href = vistaPrevia.url; a.download = vistaPrevia.filename; a.click();
+  toast('Imagen guardada');
+});
+document.getElementById('share-preview-send').addEventListener('click', async ()=>{
+  if(!vistaPrevia) return;
+  const file = new File([vistaPrevia.blob], vistaPrevia.filename, { type:'image/png' });
+  if(navigator.canShare && navigator.canShare({ files:[file] })){
+    try{
+      await navigator.share({ files:[file], title: vistaPrevia.title, text: vistaPrevia.text });
+      cerrarVistaPrevia();
+    }catch(err){
+      if(err.name !== 'AbortError') toast('Tu navegador no dejó compartir. Usa "Guardar" y envíala a mano.');
+    }
+  } else {
+    toast('Este navegador no permite compartir archivos. Usa "Guardar".');
+  }
+});
+
 async function canvasToShare(canvas, filename, title, text){
   return new Promise(resolve=>{
-    canvas.toBlob(async (blob)=>{
+    canvas.toBlob(blob=>{
       if(!blob){ toast('No se pudo generar la imagen.'); return resolve(); }
-      const file = new File([blob], filename, { type:'image/png' });
-      if(navigator.canShare && navigator.canShare({ files:[file] })){
-        try{ await navigator.share({ files:[file], title, text }); }
-        catch(err){ if(err.name !== 'AbortError') toast('No se pudo compartir.'); }
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = filename; a.click();
-        setTimeout(()=> URL.revokeObjectURL(url), 5000);
-        toast('Imagen descargada');
-      }
+      abrirVistaPrevia(blob, filename, title, text);
       resolve();
     }, 'image/png');
   });
@@ -920,19 +1019,7 @@ async function shareEntry(id){
   try{
     if(typeof html2canvas === 'undefined') throw new Error('No se pudo cargar el generador de imágenes. Revisa tu conexión.');
     const canvas = await html2canvas(holder, { backgroundColor:'#ffffff', scale:2 });
-    canvas.toBlob(async (blob)=>{
-      if(!blob){ toast('No se pudo generar la imagen.'); return; }
-      const file = new File([blob], `salida-${entry.code}.png`, { type:'image/png' });
-      if(navigator.canShare && navigator.canShare({ files:[file] })){
-        try{ await navigator.share({ files:[file], title:'Control de Salidas', text:`${entry.code} — ${entry.name}` }); }
-        catch(err){ if(err.name !== 'AbortError') toast('No se pudo compartir.'); }
-      } else {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = `salida-${entry.code}.png`; a.click();
-        URL.revokeObjectURL(url);
-        toast('Imagen descargada');
-      }
-    }, 'image/png');
+    await canvasToShare(canvas, `salida-${entry.code}.png`, 'Control de Salidas', `${entry.code} — ${entry.name}`);
   }catch(e){ console.error(e); toast(e.message || 'No se pudo generar la imagen.'); }
 }
 
