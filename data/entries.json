@@ -5,12 +5,12 @@
     "name": "Alexander",
     "time": "04:40",
     "obs": "",
-    "status": "regreso",
-    "returnTime": "20:37",
+    "status": "fuera",
+    "returnTime": null,
     "workerId": null,
     "workerUsername": null,
     "createdAt": 1790210061386,
-    "editedAt": 1790210253553,
+    "editedAt": 1790210260486,
     "deletedAt": null,
     "history": [
       {
@@ -19,6 +19,13 @@
         "status": "regreso",
         "returnTime": "20:37",
         "changedAt": 1790210253553
+      },
+      {
+        "time": "04:40",
+        "obs": "",
+        "status": "regreso",
+        "returnTime": "20:37",
+        "changedAt": 1790210260486
       }
     ]
   },
