@@ -63,14 +63,14 @@
     "id": "93ec9ce0-4e8e-4eab-8d0f-84fb4231c687",
     "code": "GD-166",
     "name": "Alexander Rossis",
-    "time": "11:45",
+    "time": "11:52",
     "obs": "",
     "status": "fuera",
     "returnTime": null,
     "workerId": "d23c3536-c39b-42d8-8152-8a5e8452a16a",
     "workerUsername": "alexander",
     "createdAt": 1790264760807,
-    "editedAt": 1790264772080,
+    "editedAt": 1790264778369,
     "deletedAt": null,
     "history": [
       {
@@ -84,6 +84,12 @@
         "action": "Regreso deshecho",
         "from": "11:46",
         "to": "fuera"
+      },
+      {
+        "changedAt": 1790264778369,
+        "action": "Hora de salida",
+        "from": "11:45",
+        "to": "11:52"
       }
     ]
   }
