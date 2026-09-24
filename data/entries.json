@@ -43,27 +43,5 @@
     "editedAt": null,
     "deletedAt": 1790210358965,
     "history": []
-  },
-  {
-    "id": "61f26565-bf4b-4eb9-a34e-b0dadaeff633",
-    "code": "GD-67",
-    "name": "Alexander Rossis",
-    "time": "12:41",
-    "obs": "CPM",
-    "status": "fuera",
-    "returnTime": null,
-    "workerId": "d23c3536-c39b-42d8-8152-8a5e8452a16a",
-    "workerUsername": "alexander",
-    "createdAt": 1790268036406,
-    "editedAt": 1790268050646,
-    "deletedAt": 1790269000671,
-    "history": [
-      {
-        "changedAt": 1790268050646,
-        "action": "Hora de salida",
-        "from": "12:39",
-        "to": "12:41"
-      }
-    ]
   }
 ]
