@@ -668,10 +668,28 @@ async function handleDeleteVehicle(request, env) {
   }
 }
 
+// App de Android (GEMSA Salidas). Android lee este archivo para confirmar que la
+// app es de este sitio y así abrirla a pantalla completa, sin la barra de Chrome.
+// La huella es la de la llave de firma (firma/gemsa-salidas.keystore). Si algún día
+// se firma la app con otra llave, hay que poner aquí la huella nueva.
+const APP_ANDROID = {
+  paquete: 'com.gadrnet.gemsa',
+  huellas: ['EC:5A:DB:88:2E:F4:73:C8:3B:AF:17:7A:70:C6:B5:08:01:6F:81:1F:BC:67:05:F7:30:51:F8:A7:7C:25:DD:6C'],
+};
+
+function assetLinks() {
+  return new Response(JSON.stringify([{
+    relation: ['delegate_permission/common.handle_all_urls'],
+    target: { namespace: 'android_app', package_name: APP_ANDROID.paquete, sha256_cert_fingerprints: APP_ANDROID.huellas },
+  }]), { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=3600' } });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const method = request.method;
+
+    if (url.pathname === '/.well-known/assetlinks.json' && (method === 'GET' || method === 'HEAD')) return assetLinks();
 
     if (url.pathname === '/api/auth/login' && method === 'POST') return handleLogin(request, env);
     if (url.pathname === '/api/auth/me' && method === 'GET') return handleMe(request, env);
