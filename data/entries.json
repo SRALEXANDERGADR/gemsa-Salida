@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "id": "b719972a-f698-46fe-94cf-4fe6cf7c51a1",
+    "code": "GD-58",
+    "name": "Héctor Berroa",
+    "time": "08:20",
+    "obs": "",
+    "status": "fuera",
+    "returnTime": null,
+    "workerId": "56ada056-2ee1-4aa2-81e7-85d2e6202b63",
+    "workerUsername": "berroa",
+    "createdAt": 1790425221611,
+    "editedAt": null,
+    "deletedAt": null,
+    "createdBy": "Héctor Berroa",
+    "history": []
+  }
+]
