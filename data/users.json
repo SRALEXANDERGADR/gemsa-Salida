@@ -9,5 +9,15 @@
     "createdAt": 1790210138906,
     "passEnc": "v1:dd360270f145674c8ebac13d:9150fca804f8d31354c6bb37213f8de1d34de51b",
     "passChangedAt": 1790282974185
+  },
+  {
+    "id": "56ada056-2ee1-4aa2-81e7-85d2e6202b63",
+    "username": "berroa",
+    "name": "Héctor Berroa",
+    "hash": "955b64805664a354ffef5ba5a736e67cbcc9840b8e688651aead4067cb237060",
+    "salt": "b761925a6b8e4adb416aee35cd578d47",
+    "passEnc": "v1:69c0537bb9406592ab127078:a8598a7bc6de39de2a7091b4dcd9a9862f772a6e",
+    "tokenHash": null,
+    "createdAt": 1790424951494
   }
 ]
