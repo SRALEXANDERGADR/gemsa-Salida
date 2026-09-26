@@ -4,5 +4,11 @@
     "code": "G-32",
     "desc": "Camioneta blanca",
     "createdAt": 1790374326188
+  },
+  {
+    "id": "2d8882ff-50eb-4448-8119-d5b41030c4b4",
+    "code": "GD-58",
+    "desc": "Canasto",
+    "createdAt": 1790425154750
   }
 ]
