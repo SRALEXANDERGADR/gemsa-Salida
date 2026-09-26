@@ -5,14 +5,22 @@
     "name": "Héctor Berroa",
     "time": "08:20",
     "obs": "",
-    "status": "fuera",
-    "returnTime": null,
+    "status": "regreso",
+    "returnTime": "08:20",
     "workerId": "56ada056-2ee1-4aa2-81e7-85d2e6202b63",
     "workerUsername": "berroa",
     "createdAt": 1790425221611,
     "editedAt": null,
     "deletedAt": null,
     "createdBy": "Héctor Berroa",
-    "history": []
+    "history": [
+      {
+        "changedAt": 1790425239233,
+        "by": "Héctor Berroa",
+        "type": "regreso_marcado",
+        "from": null,
+        "to": "08:20"
+      }
+    ]
   }
 ]
