@@ -1,1 +1,18 @@
-[]
+[
+  {
+    "id": "0287ae0e-fa8c-42b3-80ad-0232094b7841",
+    "code": "G-152",
+    "name": "Juan Carlos",
+    "time": "08:07",
+    "obs": "",
+    "status": "fuera",
+    "returnTime": null,
+    "workerId": null,
+    "workerUsername": null,
+    "createdAt": 1790510869277,
+    "editedAt": null,
+    "deletedAt": null,
+    "createdBy": "Supervisor",
+    "history": []
+  }
+]
