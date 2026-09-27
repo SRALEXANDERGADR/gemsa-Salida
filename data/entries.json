@@ -46,5 +46,21 @@
     "deletedAt": null,
     "createdBy": "Jose Manuel Salas",
     "history": []
+  },
+  {
+    "id": "dbd35754-d0d7-4623-88cb-196fc2e75ffc",
+    "code": "GD-157",
+    "name": "Luis",
+    "time": "08:40",
+    "obs": "",
+    "status": "fuera",
+    "returnTime": null,
+    "workerId": "06139d3d-f868-44e0-98cb-20144185f459",
+    "workerUsername": "luis",
+    "createdAt": 1790512821472,
+    "editedAt": null,
+    "deletedAt": null,
+    "createdBy": "Luis",
+    "history": []
   }
 ]
