@@ -19,5 +19,15 @@
     "passEnc": "v1:69c0537bb9406592ab127078:a8598a7bc6de39de2a7091b4dcd9a9862f772a6e",
     "tokenHash": "03d97ed95511356496630b09d4dd692940ffe96f3ef5b6192eb820ce6044ac4b",
     "createdAt": 1790424951494
+  },
+  {
+    "id": "4c17ea19-1c15-49a2-a6c4-4c075088eb8b",
+    "username": "juan",
+    "name": "Juan Carlos",
+    "hash": "ee222d04c8b24262b64a5f2d4f0a82bed594561a23b82b0b57a62ddb937c8fc9",
+    "salt": "d7f4f9d3b6051dc400ccf32cc58b86c3",
+    "passEnc": "v1:11c188d77e63dad2291e27d3:9a869d4cf4ad84a0effe8fcfa9e5081c581f0e74",
+    "tokenHash": null,
+    "createdAt": 1790510943577
   }
 ]
