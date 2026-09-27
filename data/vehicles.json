@@ -16,5 +16,11 @@
     "code": "G-104",
     "desc": "Vehículo Eléctrico",
     "createdAt": 1790512058027
+  },
+  {
+    "id": "b9e6229a-0977-40b5-8e91-aa3d09e528ae",
+    "code": "G-106",
+    "desc": "Van blanca / Van de carga",
+    "createdAt": 1790512213878
   }
 ]
