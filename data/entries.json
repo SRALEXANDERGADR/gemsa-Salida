@@ -14,5 +14,21 @@
     "deletedAt": 1790511016250,
     "createdBy": "Supervisor",
     "history": []
+  },
+  {
+    "id": "79a2de6e-2917-4251-a3fb-3048715ab4b6",
+    "code": "G-152",
+    "name": "Juan Carlos",
+    "time": "08:10",
+    "obs": "",
+    "status": "fuera",
+    "returnTime": null,
+    "workerId": "4c17ea19-1c15-49a2-a6c4-4c075088eb8b",
+    "workerUsername": "juan",
+    "createdAt": 1790511041718,
+    "editedAt": null,
+    "deletedAt": null,
+    "createdBy": "Juan Carlos",
+    "history": []
   }
 ]
