@@ -62,5 +62,21 @@
     "deletedAt": null,
     "createdBy": "Luis",
     "history": []
+  },
+  {
+    "id": "aad5f768-d707-4b8f-91a7-e8e369666a7f",
+    "code": "G-106",
+    "name": "Pedro Hernández",
+    "time": "08:41",
+    "obs": "",
+    "status": "fuera",
+    "returnTime": null,
+    "workerId": "ccb41e94-fce5-43c1-8276-29c8111a9db2",
+    "workerUsername": "pedro",
+    "createdAt": 1790512874536,
+    "editedAt": null,
+    "deletedAt": null,
+    "createdBy": "Pedro Hernández",
+    "history": []
   }
 ]
