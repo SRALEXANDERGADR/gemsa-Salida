@@ -49,5 +49,15 @@
     "passEnc": "v1:b4ab603406261434c66974fa:33f3bb514896147f677bc7734a9e48afedff03aa",
     "tokenHash": null,
     "createdAt": 1790512483504
+  },
+  {
+    "id": "ccb41e94-fce5-43c1-8276-29c8111a9db2",
+    "username": "pedro",
+    "name": "Pedro Hernández",
+    "hash": "cb39562fe5dddeefa31040fcf2a92418eb3429f2edf5d9378ff4d304bff507cc",
+    "salt": "8cd011445de91c29ba0919376df2756f",
+    "passEnc": "v1:8110cf332a98d602c1a35fdd:2231404419bfa22eae739c24e62efd7af49439c7",
+    "tokenHash": null,
+    "createdAt": 1790512634639
   }
 ]
