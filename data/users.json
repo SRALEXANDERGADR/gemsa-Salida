@@ -27,7 +27,7 @@
     "hash": "ee222d04c8b24262b64a5f2d4f0a82bed594561a23b82b0b57a62ddb937c8fc9",
     "salt": "d7f4f9d3b6051dc400ccf32cc58b86c3",
     "passEnc": "v1:11c188d77e63dad2291e27d3:9a869d4cf4ad84a0effe8fcfa9e5081c581f0e74",
-    "tokenHash": "09f8c0df26e161cb43f8946f5182efe2b8379388e39473307bee3fdf74c02b12",
+    "tokenHash": null,
     "createdAt": 1790510943577
   }
 ]
