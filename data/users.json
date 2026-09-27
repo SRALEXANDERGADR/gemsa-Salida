@@ -47,7 +47,7 @@
     "hash": "4f3b64283aaa009ffcd889df943b9f12ee2667b30aff04d4f7259e2924502139",
     "salt": "74380bbd131d8086f3d028da76f8a3a9",
     "passEnc": "v1:b4ab603406261434c66974fa:33f3bb514896147f677bc7734a9e48afedff03aa",
-    "tokenHash": "8cd42154e506f75653d381c478e3f8af16902eb3de82cecad7cf4458b69a602f",
+    "tokenHash": null,
     "createdAt": 1790512483504
   },
   {
