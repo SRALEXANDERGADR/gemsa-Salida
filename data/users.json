@@ -29,5 +29,15 @@
     "passEnc": "v1:11c188d77e63dad2291e27d3:9a869d4cf4ad84a0effe8fcfa9e5081c581f0e74",
     "tokenHash": null,
     "createdAt": 1790510943577
+  },
+  {
+    "id": "787bc1b7-abb5-4788-9b2b-62adf8636bfc",
+    "username": "salas",
+    "name": "Jose Manuel Salas",
+    "hash": "08bc328cf9566c5b4080dff2667f4a082593db0f3988747abffa965cf2394171",
+    "salt": "29f3b576c5739deeb32a63500d06378b",
+    "passEnc": "v1:9ab53ec19d6a10fd5ea59212:fdfc84b9f384fc601e5d712a6e0791b25d44912b",
+    "tokenHash": null,
+    "createdAt": 1790512376732
   }
 ]
