@@ -30,5 +30,21 @@
     "deletedAt": null,
     "createdBy": "Juan Carlos",
     "history": []
+  },
+  {
+    "id": "9874c100-3a1a-4032-8065-98aded178434",
+    "code": "G-104",
+    "name": "Jose Manuel Salas",
+    "time": "08:39",
+    "obs": "",
+    "status": "fuera",
+    "returnTime": null,
+    "workerId": "787bc1b7-abb5-4788-9b2b-62adf8636bfc",
+    "workerUsername": "salas",
+    "createdAt": 1790512778832,
+    "editedAt": null,
+    "deletedAt": null,
+    "createdBy": "Jose Manuel Salas",
+    "history": []
   }
 ]
