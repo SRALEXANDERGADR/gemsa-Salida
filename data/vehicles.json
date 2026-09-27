@@ -4,5 +4,11 @@
     "code": "GD-58",
     "desc": "Canasto",
     "createdAt": 1790425154750
+  },
+  {
+    "id": "8fd5f166-5a0c-46e1-b5a7-23428057c137",
+    "code": "G-152",
+    "desc": "Camioneta Blanca",
+    "createdAt": 1790510853027
   }
 ]
