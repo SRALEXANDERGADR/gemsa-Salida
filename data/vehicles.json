@@ -10,5 +10,11 @@
     "code": "G-152",
     "desc": "Camioneta Blanca",
     "createdAt": 1790510853027
+  },
+  {
+    "id": "e308ca52-e942-4863-9dc9-4e2a52804884",
+    "code": "G-104",
+    "desc": "Vehículo Eléctrico",
+    "createdAt": 1790512058027
   }
 ]
