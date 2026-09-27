@@ -22,5 +22,11 @@
     "code": "G-106",
     "desc": "Van blanca / Van de carga",
     "createdAt": 1790512213878
+  },
+  {
+    "id": "e8998510-6172-4973-aa6a-9d3107999b5b",
+    "code": "GD-157",
+    "desc": "Camioneta Blanca",
+    "createdAt": 1790512339637
   }
 ]
